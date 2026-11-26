@@ -320,7 +320,7 @@
         <p id="sync" class="sync">Cargando tus datos…</p>
       </div>
     </div>
-    <button id="btnSettings" class="icon-btn" aria-label="Objetivo de calorías" title="Objetivo de calorías">
+    <button id="btnSettings" class="icon-btn" aria-label="Tope de calorías y ajustes" title="Tope de calorías y ajustes">
       <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="3.2"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1Z"/></svg>
     </button>
   </header>
@@ -406,7 +406,7 @@
     </section>
     <section class="card">
       <h2>Ideas para mí ✨</h2>
-      <p class="sub" style="margin-top:4px">Recetas con tus alimentos, pensadas para tu objetivo de calorías y proteína.</p>
+      <p class="sub" style="margin-top:4px">Recetas con tus alimentos, pensadas para tu tope de calorías y tu proteína.</p>
       <div class="chips" id="ideaMeal"></div>
       <button class="btn" id="ideaGo">Darme 3 ideas</button>
       <p class="err" id="ideaErr" hidden></p>
@@ -678,9 +678,11 @@ function renderBurn(){
     :`<div class="catbar"><span class="em">🚶</span><div class="n">Pasos<div class="meta muted" style="font-size:12.5px">${b.steps?fmt(b.steps)+" pasos":"anotalos en Hoy"}</div></div><span class="v num">${fmt(b.stepK)}</span></div>
       <div class="catbar"><span class="em">🏋️</span><div class="n">Gimnasio<div class="meta muted" style="font-size:12.5px">${b.gymMin?"≈ "+b.gymMin+" min registrados":"sin entrenamiento registrado"}</div></div><span class="v num">${fmt(b.gymK)}</span></div>`}
     ${eat?`<p style="margin:10px 0 0;font-size:14px">Comiste <b class="num">${fmt(eat)}</b> kcal → ${bal<=0?`<b style="color:var(--green-ink)">déficit de ${fmt(-bal)} kcal</b>`:`<b style="color:var(--warn)">superávit de ${fmt(bal)} kcal</b>`}</p>`:""}
-    <p class="muted" style="margin:6px 0 0;font-size:12.5px">Es una estimación. Tu objetivo de calorías ya tiene en cuenta tu actividad, así que no hace falta "comerte" lo que gastás.</p>`;
+    <p class="muted" style="margin:6px 0 0;font-size:12.5px">Es una estimación. Tu tope ya tiene en cuenta tu actividad, así que no hace falta "comerte" lo que gastás.</p>`;
 }
-function calOk(s){const k=totals(s).kcal,g=+profile.kcal||2000;return k>=g*0.9&&k<=g*1.1;}
+function calLabel(){return `No pasarme de ${fmt(+profile.kcal||2000)} kcal`;}
+function calOk(s){const k=totals(s).kcal,g=+profile.kcal||2000;return k>0&&k<=g;}
+function _oldCalOk(s){const k=totals(s).kcal,g=+profile.kcal||2000;return k>=g*0.9&&k<=g*1.1;}
 function onWeekday(t,s){if(t.date)return s===t.date;return !t.days||!t.days.length||t.days.length===7||t.days.includes(fromStr(s).getDay());}
 function dailyActive(s){return T.daily.filter(t=>t.created<=s&&(!t.removed||t.removed>s));}
 function dailyOn(s){return dailyActive(s).filter(t=>onWeekday(t,s));}
@@ -861,11 +863,11 @@ function renderHoy(){
   const ts=dailyOn(current); const done=new Set((days[current]&&days[current].done)||[]);
   $("dailyCount").textContent=`${sc.done} de ${sc.total}`;
   const t=totals(current); const g=+profile.kcal||2000; const ok=calOk(current);
-  const calTxt=t.kcal===0?"Registrá tus comidas del día":ok?"¡En tu objetivo!":t.kcal<g*0.9?`Te faltan ${fmt(g-t.kcal)} kcal para el objetivo`:`Te pasaste ${fmt(t.kcal-g)} kcal`;
+  const calTxt=t.kcal===0?"Registrá tus comidas del día":ok?`Margen: ${fmt(g-t.kcal)} kcal · proteína ${r0(t.p)}/${r0(profile.protein)} g`:`Te pasaste ${fmt(t.kcal-g)} kcal del tope`;
   let html=`<div class="cal-task" role="button" tabindex="0" data-goto="calorias">
       <span class="check auto${ok?" on":""}" aria-hidden="true">${TICK}</span>
-      <div class="info"><div class="tname">Calorías en objetivo</div><div class="tmeta num" style="font-size:12.5px;color:var(--muted)">${fmt(t.kcal)} de ${fmt(g)} kcal · ${calTxt}</div>
-      <div class="bar"><i style="width:${Math.min(100,t.kcal/g*100)}%;background:${t.kcal>g*1.1?"var(--warn)":"var(--green)"}"></i></div></div>
+      <div class="info"><div class="tname">${calLabel()}</div><div class="tmeta num" style="font-size:12.5px;color:var(--muted)">${fmt(t.kcal)} de ${fmt(g)} kcal · ${calTxt}</div>
+      <div class="bar"><i style="width:${Math.min(100,t.kcal/g*100)}%;background:${t.kcal>g?"var(--warn)":"var(--green)"}"></i></div></div>
     </div>
     <div class="mini-btns"><button class="btn ghost" data-quickadd="1">+ Agregar comida</button><button class="btn ghost" data-goto="calorias">Ver calorías</button></div>`;
   if(stepsGoal()>0){ const st=stepsOf(current), sok=stepsOk(current);
@@ -904,12 +906,12 @@ function renderSummary(){
   const t=totals(current); const goal=+profile.kcal||2000;
   const ratio=Math.min(t.kcal/goal,1); const C=364.4;
   const ring=$("ring"); ring.style.strokeDashoffset=C*(1-ratio);
-  ring.style.stroke=t.kcal>goal*1.03?"var(--warn)":"var(--green)";
+  ring.style.stroke=t.kcal>goal?"var(--warn)":"var(--green)";
   $("kcalNow").textContent=fmt(t.kcal);
-  $("kcalGoal").textContent="de "+fmt(goal)+" kcal";
+  $("kcalGoal").textContent="tope "+fmt(goal)+" kcal";
   const rem=goal-t.kcal; const el=$("remain");
   el.className="remain"+(rem<0?" over":"");
-  el.innerHTML=rem>=0?`Te quedan <b class="num">${fmt(rem)} kcal</b> para hoy`:`Te pasaste <b class="num">${fmt(-rem)} kcal</b> del objetivo`;
+  el.innerHTML=rem>=0?`Margen hasta el tope: <b class="num">${fmt(rem)} kcal</b>`:`Te pasaste <b class="num">${fmt(-rem)} kcal</b> del tope`;
   const M=[["Proteína",t.p,profile.protein,"var(--prot)"],["Carbohidratos",t.c,profile.carbs,"var(--carb)"],["Grasas",t.f,profile.fat,"var(--fat)"]];
   $("macros").innerHTML=M.map(([n,v,g,c])=>`<div class="macro"><div class="macro-head"><span><i class="dot" style="background:${c}"></i>${n}</span><span class="num">${r0(v)} / ${r0(g)} g</span></div><div class="bar"><i style="width:${Math.min(100,g?v/g*100:0)}%;background:${c}"></i></div></div>`).join("");
 }
@@ -923,12 +925,12 @@ function renderTips(){
     const mealsUsed=new Set(d.entries.map(e=>e.meal)).size;
     const hasVeg=d.entries.some(e=>e.cat==="verdura"||e.cat==="fruta");
     const fatPct=t.kcal?t.f*9/t.kcal:0;
-    if(kr>1.1){msg="Hoy superaste el objetivo. No pasa nada: mañana arrancás de nuevo, sin compensar de golpe.";warn=true;ic="⚠️";}
+    if(kr>1){msg="Hoy te pasaste del tope. No pasa nada: mañana arrancás de nuevo, sin compensar de golpe.";warn=true;ic="⚠️";}
     else if(kr>=0.55&&pr<0.5){msg="Venís bajo de proteína para lo que llevás comido. En la próxima comida sumá pollo, atún, huevo o carne magra.";ic="💪";}
     else if(fatPct>0.42&&t.kcal>500){msg="Más del 40% de tus calorías de hoy vienen de grasas. Probá cocinar al horno o a la plancha y medir el aceite.";warn=true;ic="🫒";}
     else if(mealsUsed>=2&&!hasVeg){msg="Todavía no sumaste verduras ni fruta hoy. Media porción de plato con verduras ayuda a llenarte con pocas calorías.";ic="🥦";}
-    else if(kr>=0.9&&kr<=1.1&&pr>=0.85){msg="¡Muy buen día! Estás en tu objetivo de calorías y de proteína.";ic="✅";}
-    else{msg=`Vas por el ${r0(kr*100)}% de tus calorías y el ${r0(pr*100)}% de la proteína del día.`;ic="📊";}
+    else if(pr>=0.85){msg="¡Muy buen día! Llegaste a la proteína sin pasarte del tope de calorías.";ic="✅";}
+    else{msg=`Llevás ${r0(pr*100)}% de la proteína del día y te quedan ${fmt(g.kcal-t.kcal)} kcal de margen.`;ic="📊";}
   }
   el.hidden=!msg; el.className="card tip"+(warn?" warn":"");
   el.innerHTML=`<span class="tip-ic">${ic}</span><p>${msg}</p>`;
@@ -965,12 +967,12 @@ function renderWeekChart(){
   for(let i=6;i>=0;i--){const s=addDays(current,-i);list.push({s,k:totals(s).kcal});}
   const withData=list.filter(x=>x.k>0);
   const avg=withData.length?withData.reduce((a,x)=>a+x.k,0)/withData.length:0;
-  $("weekSub").textContent=withData.length?`Promedio: ${fmt(avg)} kcal por día registrado · objetivo ${fmt(goal)}`:"Todavía no hay días registrados en esta semana.";
+  $("weekSub").textContent=withData.length?`Promedio: ${fmt(avg)} kcal por día registrado · tope ${fmt(goal)}`:"Todavía no hay días registrados en esta semana.";
   const W=520,H=170,padB=26,padT=14,bw=44; const max=Math.max(goal*1.25,...list.map(x=>x.k));
   const y=v=>H-padB-(v/max)*(H-padB-padT); const step=W/7;
   const bars=list.map((x,i)=>{
     const cx=step*i+step/2; const top=y(x.k); const h=H-padB-top;
-    const color=x.k>goal*1.1?"var(--warn)":"var(--green)"; const sel=x.s===current;
+    const color=x.k>goal?"var(--warn)":"var(--green)"; const sel=x.s===current;
     return `<g><rect x="${cx-bw/2}" y="${x.k?top:H-padB-2}" width="${bw}" height="${x.k?Math.max(h,2):2}" rx="7" fill="${x.k?color:"#e6e3d8"}" opacity="${sel?1:.72}"/>
       ${x.k?`<text x="${cx}" y="${top-5}" text-anchor="middle" font-size="15" fill="#6b7a70">${r0(x.k)}</text>`:""}
       <text x="${cx}" y="${H-8}" text-anchor="middle" font-size="15" fill="${sel?"#1c2a21":"#6b7a70"}" font-weight="${sel?700:400}">${clean(fWd.format(fromStr(x.s)))}</text></g>`;
@@ -978,7 +980,7 @@ function renderWeekChart(){
   const gy=y(goal);
   $("weekChart").innerHTML=`<svg viewBox="0 0 ${W} ${H}" width="100%" role="img" aria-label="Calorías de los últimos 7 días">
     <line x1="0" x2="${W}" y1="${gy}" y2="${gy}" stroke="#1c2a21" stroke-opacity=".35" stroke-dasharray="4 5"/>
-    <text x="${W-2}" y="${gy-5}" text-anchor="end" font-size="15" fill="#6b7a70">objetivo</text>${bars}</svg>`;
+    <text x="${W-2}" y="${gy-5}" text-anchor="end" font-size="15" fill="#6b7a70">tope</text>${bars}</svg>`;
 }
 
 /* ---- SEMANA ---- */
@@ -1008,7 +1010,7 @@ function renderSemana(){
     if(s>t) return `<td><span class="cell future"></span></td>`;
     const v=fn(s); if(v===null) return `<td></td>`;
     return `<td><span class="cell${v?" on":""}"></span></td>`;}).join("")}</tr>`;
-  let rows=rowFor("Calorías en objetivo",s=>calOk(s));
+  let rows=rowFor(`Calorías ≤ ${fmt(+profile.kcal||2000)}`,s=>calOk(s));
   if(stepsGoal()>0) rows+=rowFor(`${fmt(stepsGoal())} pasos`,s=>s<STEPS_SINCE?null:stepsOk(s));
   for(const x of tasksWeek) rows+=rowFor(x.name,s=>{if(x.created>s||(x.removed&&x.removed<=s)||!onWeekday(x,s))return null;return ((days[s]&&days[s].done)||[]).includes(x.id);});
   rows+=`<tr><td><b>Total del día</b></td>${dayList.map(s=>{if(s>t)return `<td></td>`;const x=dayScore(s);return `<td class="num" style="font-size:12px;font-weight:600">${r0(x.done/x.total*100)}%</td>`}).join("")}</tr>`;
@@ -1068,7 +1070,7 @@ function renderResumen(){
       <div class="stat" style="box-shadow:none;background:#f8f6f0"><b class="num">${c.sess}</b><span>${c.sess===1?"entrenamiento":"entrenamientos"}${c.vol?` · ${fmt(c.vol)} kg`:""} ${deltaHtml(c.sess,pv&&pv.sess,v=>r0(v),true)}</span></div>
       <div class="stat" style="box-shadow:none;background:#f8f6f0"><b class="num">${c.logged?fmt(c.kcalAvg):"–"}</b><span>kcal promedio por día registrado (${c.logged} de ${c.n} días) ${c.logged&&pv&&pv.logged?deltaHtml(c.kcalAvg,pv.kcalAvg,v=>fmt(v)+" kcal",null):""}</span></div>
       <div class="stat" style="box-shadow:none;background:#f8f6f0"><b class="num">${c.logged?r0(c.pAvg)+" g":"–"}</b><span>proteína promedio (objetivo ${r0(profile.protein)} g) ${c.logged&&pv&&pv.logged?deltaHtml(c.pAvg,pv.pAvg,v=>r0(v)+" g",true):""}</span></div>
-      <div class="stat" style="box-shadow:none;background:#f8f6f0"><b class="num">${c.calOk}/${c.n}</b><span>días en tu objetivo de calorías</span></div>
+      <div class="stat" style="box-shadow:none;background:#f8f6f0"><b class="num">${c.calOk}/${c.n}</b><span>días sin pasarte del tope de calorías</span></div>
       ${stepsGoal()>0?`<div class="stat" style="box-shadow:none;background:#f8f6f0"><b class="num">${c.stepsDays?fmt(c.stepsAvg):"–"}</b><span>pasos promedio · ${c.stepsOk} ${c.stepsOk===1?"día":"días"} con ${fmt(stepsGoal())} o más ${c.stepsDays&&pv&&pv.stepsDays?deltaHtml(c.stepsAvg,pv.stepsAvg,v=>fmt(v),true):""}</span></div>`:""}
       ${c.wk!=null?`<div class="stat" style="box-shadow:none;background:#f8f6f0"><b class="num">${pct(c.wk)}</b><span>de tus tareas semanales cumplidas</span></div>`:""}
       ${(()=>{const ft=finTotals(R.a,R.b<todayStr()?R.b:todayStr()),fp=finTotals(P.a,P.b);return ft.total?`<div class="stat" style="box-shadow:none;background:#f8f6f0"><b class="num" style="font-size:24px">${money(ft.total)}</b><span>gastados ${fp.total?deltaHtml(ft.total,fp.total,v=>money(v),false):""}</span></div>`:"";})()}
@@ -1117,7 +1119,7 @@ function renderProgreso(){
   else $("stats").innerHTML=`${note}
     <div class="stat"><b class="num">${pct}%</b><span>de tus tareas diarias cumplidas</span></div>
     <div class="stat"><b class="num">${wavg==null?"–":r0(wavg*100)+"%"}</b><span>de tus tareas semanales cumplidas${wk.length?` (${wk.length} ${wk.length===1?"semana":"semanas"})`:""}</span></div>
-    <div class="stat"><b class="num">${calDays}/${elapsed}</b><span>días en tu objetivo de calorías</span></div>
+    <div class="stat"><b class="num">${calDays}/${elapsed}</b><span>días sin pasarte del tope de calorías</span></div>
     ${(()=>{let n=0,v=0;for(let i=0;i<elapsed;i++){const t2=trains[addDays(P.start,i)];if(t2){const x=sessionStats(t2);if(x.sets){n++;v+=x.vol;}}}return workout.days.length||n?`<div class="stat" style="grid-column:1/-1"><b class="num">${n} ${n===1?"entrenamiento":"entrenamientos"}</b><span>registrados en el período${v?` · ${fmt(v)} kg levantados en total`:""}</span></div>`:"";})()}
     <div class="stat"><b class="num">${cur} ${cur===1?"día":"días"}</b><span>racha actual con todo cumplido · mejor: ${best} · días completos: ${full}</span></div>`;
   // mapa de calor
@@ -1132,7 +1134,7 @@ function renderProgreso(){
   }
   $("heat").innerHTML=cells;
   // por tarea
-  const list=[{name:"Calorías en objetivo",created:"0000",fn:s=>calOk(s)},...(stepsGoal()>0?[{name:`${fmt(stepsGoal())} pasos`,created:STEPS_SINCE,fn:s=>stepsOk(s)}]:[]),...T.daily.filter(x=>!x.removed).map(x=>({name:x.name+(x.date||(x.days&&x.days.length&&x.days.length<7)?` (${taskLabel(x)})`:""),created:x.created,on:s=>onWeekday(x,s),fn:s=>((days[s]&&days[s].done)||[]).includes(x.id)}))];
+  const list=[{name:calLabel(),created:"0000",fn:s=>calOk(s)},...(stepsGoal()>0?[{name:`${fmt(stepsGoal())} pasos`,created:STEPS_SINCE,fn:s=>stepsOk(s)}]:[]),...T.daily.filter(x=>!x.removed).map(x=>({name:x.name+(x.date||(x.days&&x.days.length&&x.days.length<7)?` (${taskLabel(x)})`:""),created:x.created,on:s=>onWeekday(x,s),fn:s=>((days[s]&&days[s].done)||[]).includes(x.id)}))];
   $("perTask").innerHTML=list.map(x=>{let n=0,d=0;for(let i=0;i<elapsed;i++){const s=addDays(P.start,i);if(s<x.created||(x.on&&!x.on(s)))continue;d++;if(x.fn(s))n++;}
     const p=d?n/d:0;return `<div class="ptask"><span class="n">${esc(x.name)}</span><div class="bar"><i style="width:${p*100}%"></i></div><span class="num">${r0(p*100)}%</span></div>`}).join("")
     +(T.weekly.filter(x=>!x.removed).length?`<div class="section-label">Semanales</div>`+T.weekly.filter(x=>!x.removed).map(x=>{const vals=[];for(let m=mondayOf(P.start);m<=mondayOf(P.last);m=addDays(m,7)){if(addDays(m,6)<x.created)continue;vals.push(Math.min(1,(((weeks[m]&&weeks[m].counts)||{})[x.id]||0)/x.target));}
@@ -1954,8 +1956,8 @@ function calcGoals(p){
 }
 function openSettings(){
   const p=profile;
-  openSheet("Objetivo de calorías",`
-    <p class="muted" style="margin:0 0 12px">Con tus datos calculo cuántas calorías gastás por día (fórmula Mifflin-St Jeor) y armo un objetivo. Después lo podés ajustar a mano.</p>
+  openSheet("Tope de calorías",`
+    <p class="muted" style="margin:0 0 12px">Con tus datos calculo cuántas calorías gastás por día (fórmula Mifflin-St Jeor) y te sugiero un tope diario para no pasarte. Después lo podés ajustar a mano.</p>
     <div class="section-label" style="margin-top:0">Sexo</div>
     <div class="chips" id="sSex"><button class="chip${p.sex==="m"?" on":""}" data-v="m">Hombre</button><button class="chip${p.sex==="f"?" on":""}" data-v="f">Mujer</button></div>
     <div class="grid3">
@@ -1967,15 +1969,15 @@ function openSettings(){
     <div class="section-label" style="margin-top:0">Objetivo</div>
     <div class="chips" id="sGoal">${[["perder","Bajar grasa"],["mantener","Mantener"],["ganar","Ganar músculo"]].map(([v,l])=>`<button class="chip${p.goal===v?" on":""}" data-v="${v}">${l}</button>`).join("")}</div>
     <div class="goal-out num" id="sOut"></div>
-    <div class="section-label">Objetivo diario (editable)</div>
+    <div class="section-label">Tope de calorías y metas de macros (editable)</div>
     <div class="grid4">
-      <label class="field"><span>Kcal</span><input class="input num" id="gK" type="number" value="${r0(p.kcal)}"></label>
+      <label class="field"><span>Tope kcal</span><input class="input num" id="gK" type="number" value="${r0(p.kcal)}"></label>
       <label class="field"><span>Prot. g</span><input class="input num" id="gP" type="number" value="${r0(p.protein)}"></label>
       <label class="field"><span>Carb. g</span><input class="input num" id="gC" type="number" value="${r0(p.carbs)}"></label>
       <label class="field"><span>Grasa g</span><input class="input num" id="gF" type="number" value="${r0(p.fat)}"></label>
     </div>
     <label class="field" style="margin-top:4px"><span>Meta de pasos por día (0 = no usar)</span><input class="input num" id="sSteps" type="text" inputmode="numeric" value="${stepsGoal()}"></label>
-    <button class="btn" id="sSave">Guardar objetivo</button>
+    <button class="btn" id="sSave">Guardar</button>
     <div class="section-label" style="margin-top:22px">Copia de seguridad</div>
     <p class="muted" style="margin:0 0 10px">Todos tus datos (comidas, tareas, entrenamientos, recetas, rutina) en un solo archivo o texto, para guardarlos o pasarlos a la otra versión de la página.</p>
     <div class="mini-btns" style="margin-top:0">${STANDALONE?`<button class="btn ghost" id="bkDown">Descargar archivo</button>`:""}<button class="btn ghost" id="bkCopy">Copiar mis datos</button></div>
@@ -1994,7 +1996,7 @@ function openSettings(){
   const upd=(fill)=>{const g=calcGoals(read());
     if(!g){$("sOut").textContent="Completá edad, peso y altura.";return;}
     const adjTxt={perder:"con un déficit moderado (−15%)",mantener:"para mantener tu peso",ganar:"con un superávit moderado (+10%)"}[goal];
-    $("sOut").innerHTML=`Gastás aprox. <b>${fmt(g.tdee)} kcal/día</b> (metabolismo basal ${fmt(g.bmr)}).<br>Objetivo sugerido ${adjTxt}: <b>${fmt(g.kcal)} kcal</b> · ${g.protein} g proteína · ${g.carbs} g carbos · ${g.fat} g grasas.`;
+    $("sOut").innerHTML=`Gastás aprox. <b>${fmt(g.tdee)} kcal/día</b> (metabolismo basal ${fmt(g.bmr)}).<br>Tope sugerido ${adjTxt}: <b>${fmt(g.kcal)} kcal</b> · ${g.protein} g proteína · ${g.carbs} g carbos · ${g.fat} g grasas.`;
     if(fill){$("gK").value=g.kcal;$("gP").value=g.protein;$("gC").value=g.carbs;$("gF").value=g.fat;}};
   upd(!p.configured);
   ["sAge","sW","sH","sAct"].forEach(i=>$(i).oninput=()=>upd(true));
@@ -2002,10 +2004,10 @@ function openSettings(){
   $("sGoal").onclick=e=>{const c=e.target.closest("[data-v]");if(!c)return;goal=c.dataset.v;$("sGoal").querySelectorAll(".chip").forEach(x=>x.classList.toggle("on",x===c));upd(true);};
   $("sSave").onclick=()=>{
     const r=read(); const k=+$("gK").value;
-    if(!(k>=800)){toast("Revisá el objetivo de calorías");return;}
+    if(!(k>=800)){toast("Revisá el tope de calorías");return;}
     const sg=Math.max(0,Math.round(+String($("sSteps").value).replace(/[.,\s]/g,"")||0));
     profile={...profile,...r,configured:true,stepsGoal:sg,kcal:k,protein:+$("gP").value||0,carbs:+$("gC").value||0,fat:+$("gF").value||0};
-    persistProfile(); closeSheet(); render(); toast("Objetivo guardado");
+    persistProfile(); closeSheet(); render(); toast("Guardado");
   };
 }
 
