@@ -818,11 +818,10 @@ function startFb(u){
   fbRoot.on("value",snap=>{
     const v=snap.val();
     if(first){ first=false;
-      if(!v){ // cuenta nueva: si hay datos en este dispositivo (de antes de tener cuenta), se suben
-        let had=false; try{had=!!localStorage.getItem("cc-data")&&!localStorage.getItem("cc-moved");}catch(e){}
-        if(had){ loadLocalFrom("cc-data"); try{localStorage.setItem("cc-moved",u.uid);}catch(e){} persistAll(); render(); toast("Subimos a tu cuenta lo que tenías en este dispositivo"); }
-        else { render(); if(!$("welcomeShown")) showWelcome(); }
-        setSync("Guardado en tu cuenta · "+(u.email||""));
+      if(!v){ // cuenta nueva: si hay datos de este dispositivo (de antes de tener cuenta), se pregunta
+        let had=false; try{had=!!localStorage.getItem("cc-data")&&!localStorage.getItem("cc-asked-"+u.uid);}catch(e){}
+        render(); setSync("Guardado en tu cuenta · "+(u.email||""));
+        if(had) askMigrate(u); else if(!$("welcomeShown")) showWelcome();
         return; }
     }
     if(v) applyRemote(Object.entries(v).map(([id,data])=>({id,data})));
@@ -830,6 +829,15 @@ function startFb(u){
   },err=>setSync("No se pudo leer tu cuenta ("+((err&&err.code)||"error")+"). Revisá las reglas de Firebase.",true));
   try{ firebase.database().ref(".info/connected").on("value",c=>{ if(c.val()===false&&fbUser) setSync("Sin conexión: se guarda cuando vuelva internet",true); }); }catch(e){}
   importFromURL();
+}
+function askMigrate(u){
+  const mark=()=>{try{localStorage.setItem("cc-asked-"+u.uid,"1");}catch(e){}};
+  openSheet("Hay datos guardados en este dispositivo",`<p style="margin:0 0 10px;line-height:1.5">Este navegador tiene cosas cargadas de antes, cuando la página se usaba <b>sin cuenta</b> (tareas, rutina, comidas…).</p>
+    <p style="margin:0 0 16px;line-height:1.5"><b>¿Son tuyas?</b> Si este celu o compu lo usa otra persona, elegí <b>Empezar de cero</b>.</p>
+    <button class="btn" id="migYes">Sí, son mías: pasarlas a mi cuenta</button>
+    <button class="btn ghost" id="migNo" style="margin-top:8px">No, empezar de cero</button>`);
+  $("migYes").onclick=()=>{ mark(); loadLocalFrom("cc-data"); persistAll(); closeSheet(); render(); toast("Listo: pasamos esos datos a tu cuenta"); };
+  $("migNo").onclick=()=>{ mark(); closeSheet(); showWelcome(); };
 }
 function showWelcome(){
   openSheet("¡Bienvenido/a! 👋",`<span id="welcomeShown"></span><p style="margin:0 0 10px;line-height:1.5">Esta es tu página personal: todo lo que cargues queda en <b>tu cuenta</b> y nadie más lo ve.</p>
