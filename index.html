@@ -717,9 +717,9 @@ function daysLabel(d){if(!d||!d.length||d.length===7)return "Todos los días";re
 function weeklyOn(m){const sun=addDays(m,6);return T.weekly.filter(t=>t.created<=sun&&(!t.removed||t.removed>m));}
 function dayScore(s){
   const ts=dailyOn(s); const done=new Set((days[s]&&days[s].done)||[]);
-  const so=stepsOn(s);
-  const n=ts.filter(t=>done.has(t.id)).length+(calOk(s)?1:0)+(so&&stepsOk(s)?1:0);
-  return {done:n,total:ts.length+1+(so?1:0)};
+  const so=stepsOn(s), to=trainOn(s);
+  const n=ts.filter(t=>done.has(t.id)).length+(calOk(s)?1:0)+(so&&stepsOk(s)?1:0)+(to&&trainDone(s)?1:0);
+  return {done:n,total:ts.length+1+(so?1:0)+(to?1:0)};
 }
 function weekScore(m){
   const ts=weeklyOn(m); if(!ts.length) return null;
@@ -924,7 +924,7 @@ function normalizeAll(){
   for(const t of T.daily){ if(t.days&&!Array.isArray(t.days)) t.days=Object.values(t.days); }
   favs=favs||[]; recipes=(recipes||[]).map(r=>({...r,ingredients:r.ingredients||[],steps:r.steps||[]}));
   routine={foods:[],rules:"",...routine}; routine.foods=routine.foods||[];
-  workout={days:[],...workout}; workout.days=(workout.days||[]).map(d=>({...d,exercises:d.exercises||[]}));
+  workout={days:[],...workout}; workout.days=(workout.days||[]).map(d=>({...d,exercises:d.exercises||[],...(d.wdays&&!Array.isArray(d.wdays)?{wdays:Object.values(d.wdays)}:{})}));
   for(const k of Object.keys(days)){const d=days[k];d.entries=d.entries||[];d.done=d.done||[];}
   for(const k of Object.keys(weeks)){weeks[k].counts=weeks[k].counts||{};}
   for(const k of Object.keys(trains)){const t=trains[k];t.ex=(t.ex||[]).map(e=>({...e,sets:e.sets||[]}));}
@@ -1010,7 +1010,8 @@ function renderHoy(){
   if(workout.days.length){
     tm.hidden=false; const s=trains[current]; const st=s?sessionStats(s):null;
     tm.innerHTML=s&&st.sets?`<div class="card-head"><h2>Entrenamiento</h2><span class="num">✅ registrado</span></div><p class="muted" style="margin:0">${esc(s.dayName)} · ${st.sets} ${st.sets===1?"serie":"series"}${st.vol?` · ${fmt(st.vol)} kg de volumen`:""}${st.prs?` · ${st.prs} ${st.prs===1?"récord":"récords"} 🏆`:""}</p><button class="add-btn" data-goto="entreno" style="margin-top:10px">Ver o editar</button>`
-      :`<div class="card-head"><h2>Entrenamiento</h2></div><p class="muted" style="margin:0">${current===todayStr()?"Hoy toca":"Ese día tocaba"}: <b style="color:var(--ink)">${esc((nextDay()||{}).name||"")}</b></p><button class="add-btn" data-goto="entreno" style="margin-top:10px">Registrar entrenamiento</button>`;
+      :nextDay()?`<div class="card-head"><h2>Entrenamiento</h2></div><p class="muted" style="margin:0">${current===todayStr()?"Hoy toca":"Ese día tocaba"}: <b style="color:var(--ink)">${esc(nextDay().name)}</b></p><button class="add-btn" data-goto="entreno" style="margin-top:10px">Registrar entrenamiento</button>`
+      :`<div class="card-head"><h2>Entrenamiento</h2><span class="num">😴 descanso</span></div><p class="muted" style="margin:0">${current===todayStr()?"Hoy":"Ese día"} no te toca gimnasio según tus días fijos.</p>`;
   } else tm.hidden=true;
   // semana mini
   const m=mondayOf(current); const wts=weeklyOn(m); const c=(weeks[m]&&weeks[m].counts)||{};
@@ -1133,6 +1134,7 @@ function renderSemana(){
     return `<td><span class="cell${v?" on":""}"></span></td>`;}).join("")}</tr>`;
   let rows=rowFor(`Calorías ≤ ${fmt(+profile.kcal||2000)}`,s=>calOk(s));
   if(stepsGoal()>0) rows+=rowFor(`${fmt(stepsGoal())} pasos`,s=>s<STEPS_SINCE?null:stepsOk(s));
+  if(hasSchedule()) rows+=rowFor("Entrenamiento",s=>s<TRAIN_SINCE||!scheduledDay(s)?null:trainDone(s));
   for(const x of tasksWeek) rows+=rowFor(x.name,s=>{if(x.created>s||(x.removed&&x.removed<=s)||!onWeekday(x,s))return null;return ((days[s]&&days[s].done)||[]).includes(x.id);});
   rows+=`<tr><td><b>Total del día</b></td>${dayList.map(s=>{if(s>t)return `<td></td>`;const x=dayScore(s);return `<td class="num" style="font-size:12px;font-weight:600">${r0(x.done/x.total*100)}%</td>`}).join("")}</tr>`;
   $("weekGrid").innerHTML=`<table class="wgrid">${head}${rows}</table>`;
@@ -1255,7 +1257,7 @@ function renderProgreso(){
   }
   $("heat").innerHTML=cells;
   // por tarea
-  const list=[{name:calLabel(),created:"0000",fn:s=>calOk(s)},...(stepsGoal()>0?[{name:`${fmt(stepsGoal())} pasos`,created:STEPS_SINCE,fn:s=>stepsOk(s)}]:[]),...T.daily.filter(x=>!x.removed).map(x=>({name:x.name+(x.date||(x.days&&x.days.length&&x.days.length<7)?` (${taskLabel(x)})`:""),created:x.created,on:s=>onWeekday(x,s),fn:s=>((days[s]&&days[s].done)||[]).includes(x.id)}))];
+  const list=[{name:calLabel(),created:"0000",fn:s=>calOk(s)},...(stepsGoal()>0?[{name:`${fmt(stepsGoal())} pasos`,created:STEPS_SINCE,fn:s=>stepsOk(s)}]:[]),...(hasSchedule()?[{name:"Entrenamiento (días fijos)",created:TRAIN_SINCE,on:s=>!!scheduledDay(s),fn:s=>trainDone(s)}]:[]),...T.daily.filter(x=>!x.removed).map(x=>({name:x.name+(x.date||(x.days&&x.days.length&&x.days.length<7)?` (${taskLabel(x)})`:""),created:x.created,on:s=>onWeekday(x,s),fn:s=>((days[s]&&days[s].done)||[]).includes(x.id)}))];
   $("perTask").innerHTML=list.map(x=>{let n=0,d=0;for(let i=0;i<elapsed;i++){const s=addDays(P.start,i);if(s<x.created||(x.on&&!x.on(s)))continue;d++;if(x.fn(s))n++;}
     const p=d?n/d:0;return `<div class="ptask"><span class="n">${esc(x.name)}</span><div class="bar"><i style="width:${p*100}%"></i></div><span class="num">${r0(p*100)}%</span></div>`}).join("")
     +(T.weekly.filter(x=>!x.removed).length?`<div class="section-label">Semanales</div>`+T.weekly.filter(x=>!x.removed).map(x=>{const vals=[];for(let m=mondayOf(P.start);m<=mondayOf(P.last);m=addDays(m,7)){if(addDays(m,6)<x.created)continue;vals.push(Math.min(1,(((weeks[m]&&weeks[m].counts)||{})[x.id]||0)/x.target));}
@@ -1646,8 +1648,14 @@ function sessionStats(s){
     const b=bestSet(ex),pb=prevBest(ex.key,s.date);if(b&&pb&&b.w>pb)prs++;}
   return {sets,vol,prs};
 }
+const TRAIN_SINCE = "2026-11-26";
+function hasSchedule(){return workout.days.some(d=>d.wdays&&d.wdays.length);}
+function scheduledDay(s){const wd=fromStr(s).getDay();return workout.days.find(d=>d.wdays&&d.wdays.includes(wd))||null;}
+function trainDone(s){const t=trains[s];return !!(t&&sessionStats(t).sets);}
+function trainOn(s){return hasSchedule()&&s>=TRAIN_SINCE&&!!scheduledDay(s);}
 function nextDay(){
   if(!workout.days.length) return null;
+  if(hasSchedule()) return scheduledDay(current);
   const ds=sessionDates().filter(d=>d<current);
   const last=ds.length?trains[ds[ds.length-1]]:null;
   const i=last?workout.days.findIndex(d=>d.id===last.dayId):-1;
@@ -1666,9 +1674,16 @@ function renderTrainSession(){
   const el=$("trainSession"); const s=trains[current]; const t=todayStr();
   if(!workout.days.length){el.innerHTML=`<section class="card tip"><span class="tip-ic">🏋️</span><p>Armá tu rutina abajo (los días y sus ejercicios) y después registrás cada entrenamiento acá.</p></section>`;return;}
   if(!s){
-    const nd=nextDay(); const pick=workout.days.find(d=>d.id===trainPick)||nd;
-    el.innerHTML=`<section class="card"><div class="card-head"><h2>${current===t?"Hoy toca":"Entrenamiento de este día"}</h2></div>
-      <div class="chips">${workout.days.map(d=>`<button class="chip${d.id===pick.id?" on":""}" data-pickday="${d.id}">${esc(d.name)}${d.id===nd.id?" · sigue":""}</button>`).join("")}</div>
+    const nd=nextDay(); const sched=hasSchedule(); const pick=workout.days.find(d=>d.id===trainPick)||nd;
+    if(!pick){
+      el.innerHTML=`<section class="card"><div class="card-head"><h2>${current===t?"Hoy descansás 😴":"Ese día era de descanso 😴"}</h2></div>
+        <p class="muted" style="margin:0 0 10px">Según tus días fijos, ${current===t?"hoy":"ese día"} no te toca entrenar. Si igual querés entrenar, elegí cuál:</p>
+        <div class="chips">${workout.days.map(d=>`<button class="chip" data-pickday="${d.id}">${esc(d.name)}${d.wdays&&d.wdays.length?` · ${esc(daysLabel(d.wdays))}`:""}</button>`).join("")}</div>
+        <button class="link" data-opensched="1">Cambiar mis días fijos</button></section>`;
+      return;
+    }
+    el.innerHTML=`<section class="card"><div class="card-head"><h2>${current===t?"Hoy toca":"Entrenamiento de este día"}</h2>${sched?`<button class="link" data-opensched="1" style="font-size:13px">📅 Días fijos</button>`:""}</div>
+      <div class="chips">${workout.days.map(d=>`<button class="chip${d.id===pick.id?" on":""}" data-pickday="${d.id}">${esc(d.name)}${nd&&d.id===nd.id?(sched?" · hoy":" · sigue"):""}</button>`).join("")}</div>
       <p class="muted" style="margin:0 0 12px">${pick.exercises.length?esc(pick.exercises.map(e=>e.name).join(" · ")):"Este día todavía no tiene ejercicios: podés sumarlos en Mi rutina o durante el entrenamiento."}</p>
       <button class="btn" data-startday="${pick.id}">Empezar ${esc(pick.name)}</button></section>`;
     return;
@@ -1764,10 +1779,26 @@ function renderExProgress(){
 }
 function renderRoutineCard(){
   $("routineCard").innerHTML=`<div class="card-head"><h2>Mi rutina</h2><span class="num">${workout.days.length?workout.days.length+(workout.days.length===1?" día":" días"):""}</span></div>
-    ${workout.days.length?`<div>${workout.days.map(d=>`<div class="dayrow"><div class="info"><div class="name">${esc(d.name)}</div><div class="meta">${d.exercises.length?esc(d.exercises.map(e=>`${e.name} ${tgt(e)}`).join(" · ")):"Sin ejercicios todavía"}</div></div><button class="chip" data-editday="${d.id}">Editar</button></div>`).join("")}</div>`
+    ${workout.days.length?`<div>${workout.days.map(d=>`<div class="dayrow"><div class="info"><div class="name">${esc(d.name)}${d.wdays&&d.wdays.length?` <span class="tag" style="vertical-align:1px">📅 ${esc(daysLabel(d.wdays))}</span>`:""}</div><div class="meta">${d.exercises.length?esc(d.exercises.map(e=>`${e.name} ${tgt(e)}`).join(" · ")):"Sin ejercicios todavía"}</div></div><button class="chip" data-editday="${d.id}">Editar</button></div>`).join("")}</div>`
       :`<p class="muted">Creá los días de tu rutina (por ejemplo "Pecho y tríceps") y adentro sus ejercicios con series y repes.</p>`}
     ${isOwnerUser&&workout.tpl!==TPL_V&&workout.days.some(d=>d.exercises.length)?`<div class="tip card" style="margin:12px 0 0"><span class="tip-ic">📋</span><p>Tenés una rutina armada de 3 días (Pecho y tríceps · Piernas y hombro · Espalda y bíceps). <button class="link" data-loadtpl="1">Reemplazar la actual por esa</button></p></div>`:""}
+    ${workout.days.length?`<button class="add-btn" data-opensched="1" style="margin-top:12px">📅 ${hasSchedule()?"Cambiar días fijos":"Asignar días fijos de la semana (opcional)"}</button>`:""}
     <form class="new-row" id="newDay"><input class="input" id="newDayName" placeholder="Nuevo día: ej. Full body" maxlength="40"><button class="btn" type="submit">+ Día</button></form>`;
+}
+function openSchedule(){
+  const sel={}; for(const d of workout.days) sel[d.id]=[...(d.wdays||[])];
+  openSheet("Días fijos de tu rutina",`<p class="muted" style="margin:0 0 12px">Elegí qué días de la semana hacés cada entrenamiento. En <b>Hoy</b> te va a aparecer el que te toca, y los otros días figuran como descanso. Si no elegís ninguno, la página sigue la rotación (uno después del otro).</p><div id="schedList"></div>
+    <button class="btn" id="schedSave" style="margin-top:14px">Guardar</button>
+    <button class="btn ghost" id="schedClear" style="margin-top:8px">Sin días fijos (usar rotación)</button>`);
+  const draw=()=>{ const taken={}; for(const d of workout.days) for(const w of sel[d.id]) taken[w]=d.id;
+    $("schedList").innerHTML=workout.days.map(d=>`<div style="padding:10px 0;border-top:1px solid var(--line)"><b style="font-size:15px">${esc(d.name)}</b>
+      <div class="daychips">${WD.map(([n,l,f])=>`<button class="chip${sel[d.id].includes(n)?" on":""}" data-sd="${d.id}:${n}" title="${f}" ${taken[n]&&taken[n]!==d.id?'style="opacity:.4"':""}>${l}</button>`).join("")}</div></div>`).join(""); };
+  draw();
+  $("schedList").onclick=e=>{const c=e.target.closest("[data-sd]");if(!c)return;const [id,n0]=c.dataset.sd.split(":");const n=+n0;
+    if(sel[id].includes(n)) sel[id]=sel[id].filter(v=>v!==n); else { for(const k of Object.keys(sel)) sel[k]=sel[k].filter(v=>v!==n); sel[id].push(n); }
+    draw();};
+  $("schedSave").onclick=()=>{ for(const d of workout.days){ if(sel[d.id].length) d.wdays=sel[d.id].sort(); else delete d.wdays; } trainPick=null; persistWorkout(); closeSheet(); render(); toast(hasSchedule()?"Días fijos guardados":"Volviste a la rotación"); };
+  $("schedClear").onclick=()=>{ for(const d of workout.days) delete d.wdays; trainPick=null; persistWorkout(); closeSheet(); render(); toast("Volviste a la rotación"); };
 }
 function openDayEditor(id){
   const d=workout.days.find(x=>x.id===id); if(!d) return;
@@ -2258,6 +2289,7 @@ document.addEventListener("click",e=>{
   const sd=e.target.closest("[data-sugd]"); if(sd){addDaily(sd.dataset.sugd);return;}
   const sw=e.target.closest("[data-sugw]"); if(sw){addWeekly(sw.dataset.sugw,sw.dataset.n);return;}
   if(e.target.closest("[data-loadtpl]")){const prev=clone(workout);workout=clone(DEFAULT_WORKOUT);persistWorkout();render();toast("Rutina cargada","Deshacer",()=>{workout=prev;persistWorkout();render();});return;}
+  if(e.target.closest("[data-opensched]")){openSchedule();return;}
   const pd=e.target.closest("[data-pickday]"); if(pd){trainPick=pd.dataset.pickday;render();return;}
   const sd2=e.target.closest("[data-startday]"); if(sd2){startSession(sd2.dataset.startday);return;}
   const ed=e.target.closest("[data-editday]"); if(ed){openDayEditor(ed.dataset.editday);return;}
