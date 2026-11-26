@@ -8,6 +8,9 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="Mi día">
 <link rel="manifest" href="manifest.webmanifest">
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
 <link rel="icon" href="icon-192.png">
 <link rel="apple-touch-icon" href="icon-192.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -289,6 +292,8 @@
   .fitem .v{font-weight:700;white-space:nowrap}
   .fitem.paused{opacity:.5}
   .dayhdr{font-size:12px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;margin:12px 0 2px}
+  .login{position:fixed;inset:0;background:var(--bg);z-index:40;display:flex;align-items:center;justify-content:center;padding:24px}
+  .login-box{max-width:380px;width:100%}
   [hidden]{display:none!important}
   @media (max-width:400px){.summary{grid-template-columns:1fr;justify-items:center}.summary .macros{width:100%}}
 </style>
@@ -473,11 +478,31 @@
   </div>
 </nav>
 
+<div id="login" class="login" hidden>
+  <div class="login-box">
+    <div style="display:flex;justify-content:center;margin-bottom:14px" id="loginLogo"></div>
+    <h2 style="font-family:Fraunces,serif;font-size:26px;margin:0 0 6px;text-align:center">Mi día</h2>
+    <p class="muted" style="text-align:center;margin:0 0 20px">Calorías, gimnasio, hábitos y finanzas. Entrá con tu cuenta de Google y lo tuyo queda guardado solo para vos, en cualquier dispositivo.</p>
+    <button class="btn" id="loginBtn" style="display:flex;align-items:center;justify-content:center;gap:10px"><svg width="18" height="18" viewBox="0 0 48 48"><path fill="#FFC107" d="M43.6 20.5H42V20H24v8h11.3C33.7 32.7 29.3 36 24 36c-6.6 0-12-5.4-12-12s5.4-12 12-12c3.1 0 5.8 1.2 7.9 3.1l5.7-5.7C34.1 6.1 29.3 4 24 4 12.9 4 4 12.9 4 24s8.9 20 20 20 20-8.9 20-20c0-1.3-.1-2.4-.4-3.5z"/><path fill="#FF3D00" d="m6.3 14.7 6.6 4.8C14.7 15.1 19 12 24 12c3.1 0 5.8 1.2 7.9 3.1l5.7-5.7C34.1 6.1 29.3 4 24 4 16.3 4 9.7 8.3 6.3 14.7z"/><path fill="#4CAF50" d="M24 44c5.2 0 9.9-2 13.4-5.2l-6.2-5.2C29.2 35.1 26.7 36 24 36c-5.3 0-9.7-3.3-11.3-8l-6.5 5C9.5 39.6 16.2 44 24 44z"/><path fill="#1976D2" d="M43.6 20.5H42V20H24v8h11.3c-.8 2.2-2.2 4.2-4.1 5.6l6.2 5.2C37 39.2 44 34 44 24c0-1.3-.1-2.4-.4-3.5z"/></svg>Entrar con Google</button>
+    <p class="err" id="loginErr" hidden style="text-align:center"></p>
+    <button class="link" id="loginSkip" style="display:block;margin:16px auto 0;font-size:13.5px">Seguir sin cuenta (se guarda solo en este dispositivo)</button>
+  </div>
+</div>
 <div id="backdrop" class="backdrop" hidden></div>
 <div id="sheet" class="sheet" hidden role="dialog" aria-modal="true"></div>
 <div id="toast" class="toast" hidden></div>
 
 <script>
+/* Pegá acá el bloque de Firebase (firebaseConfig). Si queda en null, la página guarda solo en el dispositivo. */
+const FIREBASE_CONFIG = {
+  apiKey: "AIzaSyC2vtpI9Ij-Sn2AOxYSwpglfvfyGIakZJo",
+  authDomain: "mejoreshabitos2-0.firebaseapp.com",
+  databaseURL: "https://mejoreshabitos2-0-default-rtdb.firebaseio.com",
+  projectId: "mejoreshabitos2-0",
+  storageBucket: "mejoreshabitos2-0.firebasestorage.app",
+  messagingSenderId: "836055274983",
+  appId: "1:836055274983:web:02f83697dbf53b06705942"
+};
 const STANDALONE = true; // la versión sin Claude se genera con esto en true
 /* ---------- Base de alimentos (por 100 g o 100 ml) ---------- */
 const FOODS = [
@@ -615,6 +640,7 @@ const trainDirty = new Set(), trainTimers = {};
 let days = {};                                // "YYYY-MM-DD" -> {entries, water, done}
 let weeks = {};                               // lunes "YYYY-MM-DD" -> {counts:{id:n}}
 let mode = "loading", col = null;
+let fbUser = null, fbRoot = null;
 let view = "hoy";
 let current = todayStr();
 let weekCur = mondayOf(todayStr());
@@ -709,55 +735,125 @@ function firstUse(){
 
 /* ---------- Guardado ---------- */
 const chains={};
+function remote(){return (mode==="db"&&!!col)||(mode==="fb"&&!!fbRoot);}
+function storeSet(key,body){return mode==="fb"?fbRoot.child(key).set(body):col.doc(key).set(body);}
+function storeDel(key){return mode==="fb"?fbRoot.child(key).remove():col.doc(key).delete();}
 function queueWrite(key, body){
-  if(mode!=="db"||!col) return;
+  if(!remote()) return;
+  if(mode==="fb") saveLocalSoon();
   chains[key]=(chains[key]||Promise.resolve())
-    .then(()=>col.doc(key).set(body))
+    .then(()=>storeSet(key,body))
     .catch(err=>{
       if(err&&err.code==="quota_exceeded") toast("No se pudo guardar: el espacio de la página está lleno.");
       else setSync("No se pudo guardar el último cambio. Revisá tu conexión.", true);
     });
 }
-function saveLocal(){ try{localStorage.setItem("cc-data",JSON.stringify({profile,days,T,favs,weeks,recipes,routine,workout,trains,fin,finMonths}))}catch(e){} }
-function persistDay(s){ if(mode==="db"){const d=getDay(s);queueWrite("day-"+s,{type:"day",date:s,entries:clone(d.entries),water:d.water||0,done:clone(d.done||[]),steps:d.steps||0,act:d.act||0});} else saveLocal(); }
-function persistWeek(m){ if(mode==="db") queueWrite("week-"+m,{type:"week",monday:m,counts:clone(getWeek(m).counts)}); else saveLocal(); }
-function persistProfile(){ if(mode==="db") queueWrite("profile",{type:"profile",...clone(profile)}); else saveLocal(); }
-function persistTasks(){ if(mode==="db") queueWrite("tasks",{type:"tasks",...clone(T)}); else saveLocal(); }
-function persistRecipes(){ if(mode==="db") queueWrite("recipes",{type:"recipes",items:clone(recipes)}); else saveLocal(); }
-function persistRoutine(){ if(mode==="db") queueWrite("routine",{type:"routine",...clone(routine)}); else saveLocal(); }
-function persistWorkout(){ if(mode==="db") queueWrite("workout",{type:"workout",tpl:workout.tpl||0,days:clone(workout.days)}); else saveLocal(); }
+function localKey(){return mode==="fb"&&fbUser?"cc-fb-"+fbUser.uid:"cc-data";}
+let _saveT=null; function saveLocalSoon(){clearTimeout(_saveT);_saveT=setTimeout(saveLocal,400);}
+function saveLocal(){ try{localStorage.setItem(localKey(),JSON.stringify({profile,days,T,favs,weeks,recipes,routine,workout,trains,fin,finMonths}))}catch(e){} }
+function persistDay(s){ if(remote()){const d=getDay(s);queueWrite("day-"+s,{type:"day",date:s,entries:clone(d.entries),water:d.water||0,done:clone(d.done||[]),steps:d.steps||0,act:d.act||0});} else saveLocal(); }
+function persistWeek(m){ if(remote()) queueWrite("week-"+m,{type:"week",monday:m,counts:clone(getWeek(m).counts)}); else saveLocal(); }
+function persistProfile(){ if(remote()) queueWrite("profile",{type:"profile",...clone(profile)}); else saveLocal(); }
+function persistTasks(){ if(remote()) queueWrite("tasks",{type:"tasks",...clone(T)}); else saveLocal(); }
+function persistRecipes(){ if(remote()) queueWrite("recipes",{type:"recipes",items:clone(recipes)}); else saveLocal(); }
+function persistRoutine(){ if(remote()) queueWrite("routine",{type:"routine",...clone(routine)}); else saveLocal(); }
+function persistWorkout(){ if(remote()) queueWrite("workout",{type:"workout",tpl:workout.tpl||0,days:clone(workout.days)}); else saveLocal(); }
 function persistTrain(d){
   trainDirty.add(d); clearTimeout(trainTimers[d]);
   trainTimers[d]=setTimeout(()=>{
-    if(mode!=="db"||!col){saveLocal();trainDirty.delete(d);return;}
+    if(!remote()){saveLocal();trainDirty.delete(d);return;}
+    if(mode==="fb") saveLocalSoon();
     const key="train-"+d, t=trains[d];
     chains[key]=(chains[key]||Promise.resolve())
-      .then(()=>t?col.doc(key).set({type:"train",...clone(t)}):col.doc(key).delete())
+      .then(()=>t?storeSet(key,{type:"train",...clone(t)}):storeDel(key))
       .catch(()=>setSync("No se pudo guardar el último cambio. Revisá tu conexión.",true))
       .finally(()=>trainDirty.delete(d));
   },600);
 }
-function persistFavs(){ if(mode==="db") queueWrite("favs",{type:"favs",items:clone(favs)}); else saveLocal(); }
+function persistFavs(){ if(remote()) queueWrite("favs",{type:"favs",items:clone(favs)}); else saveLocal(); }
 function setSync(t,bad){const el=$("sync");el.textContent=t;el.style.color=bad?"var(--warn)":"";}
 
+function loadLocalFrom(key){
+  try{const raw=localStorage.getItem(key);if(raw){const o=JSON.parse(raw);
+    if(o.profile)profile={...DEFAULT_PROFILE,...o.profile}; if(o.days)days=o.days; if(o.T)T={daily:[],weekly:[],challenge:null,...o.T}; if(o.favs)favs=o.favs; if(o.weeks)weeks=o.weeks; if(o.recipes)recipes=o.recipes; if(o.routine)routine=o.routine; if(o.workout)workout=o.workout; if(o.trains)trains=o.trains; if(o.fin)fin={subs:[],budget:0,...o.fin}; if(o.finMonths)finMonths=o.finMonths;}}catch(e){}
+  normalizeAll();
+}
 function useLocal(note){
   mode="local";
-  try{const raw=localStorage.getItem("cc-data");if(raw){const o=JSON.parse(raw);
-    if(o.profile)profile={...DEFAULT_PROFILE,...o.profile}; if(o.days)days=o.days; if(o.T)T={daily:[],weekly:[],challenge:null,...o.T}; if(o.favs)favs=o.favs; if(o.weeks)weeks=o.weeks; if(o.recipes)recipes=o.recipes; if(o.routine)routine=o.routine; if(o.workout)workout=o.workout; if(o.trains)trains=o.trains; if(o.fin)fin={subs:[],budget:0,...o.fin}; if(o.finMonths)finMonths=o.finMonths;}}catch(e){}
+  loadLocalFrom("cc-data");
   setSync(note||"Guardado solo en este navegador");
   render();
 }
+function fbAvailable(){return STANDALONE&&FIREBASE_CONFIG&&window.firebase&&firebase.initializeApp;}
+async function initFirebase(){
+  try{ firebase.initializeApp(FIREBASE_CONFIG); }catch(e){}
+  const auth=firebase.auth();
+  try{ await auth.setPersistence(firebase.auth.Auth.Persistence.LOCAL); }catch(e){}
+  try{ await auth.getRedirectResult(); }catch(e){ showLogin(loginErr(e)); }
+  auth.onAuthStateChanged(u=>{ if(u) startFb(u); else { try{ if(sessionStorage.getItem("cc-skip")){ startOffline(); return; } }catch(e){} showLogin(); } });
+}
+function loginErr(e){const c=(e&&e.code)||"";
+  if(c.includes("unauthorized-domain")) return "Falta autorizar este sitio en Firebase (Authentication → Configuración → Dominios autorizados).";
+  if(c.includes("popup-closed")||c.includes("cancelled")) return "";
+  if(c.includes("network")) return "Sin conexión. Probá de nuevo cuando tengas internet.";
+  return "No se pudo iniciar sesión"+(c?" ("+c+")":"")+".";}
+function showLogin(msg){ const el=$("login"); el.hidden=false; $("loginErr").textContent=msg||""; $("loginErr").hidden=!msg; setSync("Iniciá sesión para guardar en tu cuenta"); }
+async function doLogin(){
+  const auth=firebase.auth(), prov=new firebase.auth.GoogleAuthProvider(); prov.setCustomParameters({prompt:"select_account"});
+  $("loginBtn").disabled=true;
+  try{ await auth.signInWithPopup(prov); }
+  catch(e){ const c=(e&&e.code)||""; if(c.includes("popup-blocked")||c.includes("operation-not-supported")){ try{ await auth.signInWithRedirect(prov); return; }catch(e2){ showLogin(loginErr(e2)); } } else showLogin(loginErr(e)); }
+  finally{ if($("loginBtn")) $("loginBtn").disabled=false; }
+}
+function startOffline(){ $("login").hidden=true; startLocalStandalone(); }
+function startFb(u){
+  $("login").hidden=true; fbUser=u; mode="fb";
+  fbRoot=firebase.database().ref("users/"+u.uid);
+  isOwnerUser=false;
+  // primero lo guardado en este dispositivo para esta cuenta (abre al instante, aun sin internet)
+  profile={...DEFAULT_PROFILE}; days={}; weeks={}; trains={}; T={daily:[],weekly:[],challenge:null}; favs=[]; recipes=[]; routine={foods:[],rules:""}; workout={days:[]}; fin={subs:[],budget:0}; finMonths={};
+  loadLocalFrom("cc-fb-"+u.uid); render();
+  setSync("Conectando con tu cuenta…");
+  let first=true;
+  fbRoot.on("value",snap=>{
+    const v=snap.val();
+    if(first){ first=false;
+      if(!v){ // cuenta nueva: si hay datos en este dispositivo (de antes de tener cuenta), se suben
+        let had=false; try{had=!!localStorage.getItem("cc-data")&&!localStorage.getItem("cc-moved");}catch(e){}
+        if(had){ loadLocalFrom("cc-data"); try{localStorage.setItem("cc-moved",u.uid);}catch(e){} persistAll(); render(); toast("Subimos a tu cuenta lo que tenías en este dispositivo"); }
+        else { render(); if(!$("welcomeShown")) showWelcome(); }
+        setSync("Guardado en tu cuenta · "+(u.email||""));
+        return; }
+    }
+    if(v) applyRemote(Object.entries(v).map(([id,data])=>({id,data})));
+    saveLocalSoon(); setSync("Guardado en tu cuenta · "+(u.email||"")); render();
+  },err=>setSync("No se pudo leer tu cuenta ("+((err&&err.code)||"error")+"). Revisá las reglas de Firebase.",true));
+  try{ firebase.database().ref(".info/connected").on("value",c=>{ if(c.val()===false&&fbUser) setSync("Sin conexión: se guarda cuando vuelva internet",true); }); }catch(e){}
+  importFromURL();
+}
+function showWelcome(){
+  openSheet("¡Bienvenido/a! 👋",`<span id="welcomeShown"></span><p style="margin:0 0 10px;line-height:1.5">Esta es tu página personal: todo lo que cargues queda en <b>tu cuenta</b> y nadie más lo ve.</p>
+    <p class="muted" style="margin:0 0 6px">Para arrancar te recomiendo:</p>
+    <ol style="margin:0 0 14px;padding-left:20px;line-height:1.7;font-size:14.5px">
+      <li>Tocá el <b>⚙️</b> y cargá edad, peso y altura: te calculo tu tope de calorías.</li>
+      <li>En <b>Hoy</b>, agregá tus tareas (todos los días, algunos días o con fecha).</li>
+      <li>En <b>Entreno → Mi rutina</b>, armá tus días de gimnasio.</li>
+    </ol>
+    <button class="btn" id="wGo">Empezar</button>`);
+  $("wGo").onclick=()=>{closeSheet();openSettings();};
+}
+function startLocalStandalone(){
+  let had=false; try{had=!!localStorage.getItem("cc-data");}catch(e){}
+  isOwnerUser=true;
+  if(!had){ routine=clone(DEFAULT_ROUTINE); workout=clone(DEFAULT_WORKOUT); }
+  useLocal("Guardado solo en este dispositivo · hacé copias de seguridad seguido");
+  if(!had) saveLocal();
+  importFromURL();
+}
 async function initStore(){
-  if(STANDALONE){
-    let had=false; try{had=!!localStorage.getItem("cc-data");}catch(e){}
-    isOwnerUser=true;
-    if(!had){ routine=clone(DEFAULT_ROUTINE); workout=clone(DEFAULT_WORKOUT); }
-    useLocal("Guardado en este dispositivo · hacé copias de seguridad seguido");
-    if(!had) saveLocal();
-    importFromURL();
-    if("serviceWorker" in navigator&&location.protocol==="https:"){ try{navigator.serviceWorker.register("sw.js");}catch(e){} }
-    return;
-  }
+  if(STANDALONE&&"serviceWorker" in navigator&&location.protocol==="https:"){ try{navigator.serviceWorker.register("sw.js");}catch(e){} }
+  if(fbAvailable()){ initFirebase(); return; }
+  if(STANDALONE){ startLocalStandalone(); return; }
   if(!window.claude||typeof window.claude.use!=="function"){useLocal();return;}
   let db=null,user=null;
   try{[db,user]=await Promise.all([claude.use("db"),claude.use("user")]);}catch(e){}
@@ -777,9 +873,15 @@ async function initStore(){
   mode="db";
   const timer=setTimeout(()=>setSync("No se pudo conectar todavía con tu cuenta…",true),10000);
   col.onSnapshot(snap=>{
+    applyRemote(snap.docs.map(d=>({id:d.id,data:d.data()})));
+    if(!snap.metadata.fromCache){clearTimeout(timer);setSync("Guardado en tu cuenta");}
+    render();
+  },()=>{clearTimeout(timer);setSync("Se perdió la conexión con el guardado. Recargá la página.",true);});
+}
+function applyRemote(docs){
     const nd={},nw={},ntr={},nfm={};let np=null,nt=null,nf=null,nr=null,nro=null,nwo=null,nfin=null;
-    for(const doc of snap.docs){
-      const data=doc.data(); if(!data) continue;
+    for(const doc of docs){
+      const data=doc.data; if(!data||typeof data!=="object") continue;
       if(doc.id==="profile") np=clone(data);
       else if(doc.id==="tasks") nt=clone(data);
       else if(doc.id==="favs") nf=clone(data.items||[]);
@@ -806,9 +908,20 @@ async function initStore(){
     trains=ntr; finMonths=nfm;
     if(nfin) fin={subs:nfin.subs||[],budget:nfin.budget||0};
     if(nro){delete nro.type;routine={foods:nro.foods||[],rules:nro.rules||""};}
-    if(!snap.metadata.fromCache){clearTimeout(timer);setSync("Guardado en tu cuenta");}
-    render();
-  },()=>{clearTimeout(timer);setSync("Se perdió la conexión con el guardado. Recargá la página.",true);});
+    normalizeAll();
+}
+// Firebase no guarda listas vacías: se completan acá para que nada falle.
+function normalizeAll(){
+  T={daily:[],weekly:[],challenge:null,...T}; T.daily=T.daily||[]; T.weekly=T.weekly||[];
+  for(const t of T.daily){ if(t.days&&!Array.isArray(t.days)) t.days=Object.values(t.days); }
+  favs=favs||[]; recipes=(recipes||[]).map(r=>({...r,ingredients:r.ingredients||[],steps:r.steps||[]}));
+  routine={foods:[],rules:"",...routine}; routine.foods=routine.foods||[];
+  workout={days:[],...workout}; workout.days=(workout.days||[]).map(d=>({...d,exercises:d.exercises||[]}));
+  for(const k of Object.keys(days)){const d=days[k];d.entries=d.entries||[];d.done=d.done||[];}
+  for(const k of Object.keys(weeks)){weeks[k].counts=weeks[k].counts||{};}
+  for(const k of Object.keys(trains)){const t=trains[k];t.ex=(t.ex||[]).map(e=>({...e,sets:e.sets||[]}));}
+  fin={subs:[],budget:0,...fin}; fin.subs=fin.subs||[];
+  for(const k of Object.keys(finMonths)){finMonths[k].items=finMonths[k].items||[];}
 }
 
 /* ---------- Navegación ---------- */
@@ -1212,8 +1325,8 @@ function finTotals(a,b){
   for(const c of ch){sv+=+c.sub.amount||0;byCat.suscripciones=(byCat.suscripciones||0)+(+c.sub.amount||0);}
   return {total:g+sv,gastos:g,subs:sv,byCat,items:its,charges:ch};
 }
-function persistFin(){ if(mode==="db") queueWrite("finance",{type:"finance",subs:clone(fin.subs),budget:+fin.budget||0}); else saveLocal(); }
-function persistFinMonth(m){ if(mode==="db") queueWrite("fin-"+m,{type:"finmonth",month:m,items:clone(getFinMonth(m).items)}); else saveLocal(); }
+function persistFin(){ if(remote()) queueWrite("finance",{type:"finance",subs:clone(fin.subs),budget:+fin.budget||0}); else saveLocal(); }
+function persistFinMonth(m){ if(remote()) queueWrite("fin-"+m,{type:"finmonth",month:m,items:clone(getFinMonth(m).items)}); else saveLocal(); }
 function renderFinanzas(){
   const m=finMonth, a=m+"-01", b=m+"-"+pad(lastDayOf(m)); const t=todayStr();
   const c=finTotals(a,b), pm=monthAdd(m,-1), p=finTotals(pm+"-01",pm+"-"+pad(lastDayOf(pm)));
@@ -1978,6 +2091,8 @@ function openSettings(){
     </div>
     <label class="field" style="margin-top:4px"><span>Meta de pasos por día (0 = no usar)</span><input class="input num" id="sSteps" type="text" inputmode="numeric" value="${stepsGoal()}"></label>
     <button class="btn" id="sSave">Guardar</button>
+    ${mode==="fb"&&fbUser?`<div class="section-label" style="margin-top:22px">Tu cuenta</div><p class="muted" style="margin:0 0 10px">Entraste como <b>${esc(fbUser.email||"")}</b>. Todo se guarda en tu cuenta.</p><button class="btn ghost" id="logoutBtn">Cerrar sesión</button>`:""}
+    ${STANDALONE&&fbAvailable()&&mode!=="fb"?`<div class="section-label" style="margin-top:22px">Tu cuenta</div><p class="muted" style="margin:0 0 10px">Estás usando la página sin cuenta: lo que cargás queda solo en este dispositivo.</p><button class="btn" id="loginFromSettings">Entrar con Google</button>`:""}
     <div class="section-label" style="margin-top:22px">Copia de seguridad</div>
     <p class="muted" style="margin:0 0 10px">Todos tus datos (comidas, tareas, entrenamientos, recetas, rutina) en un solo archivo o texto, para guardarlos o pasarlos a la otra versión de la página.</p>
     <div class="mini-btns" style="margin-top:0">${STANDALONE?`<button class="btn ghost" id="bkDown">Descargar archivo</button>`:""}<button class="btn ghost" id="bkCopy">Copiar mis datos</button></div>
@@ -1991,6 +2106,8 @@ function openSettings(){
     <p class="muted" style="margin:0 0 10px"><b>Borrar registros</b>: borra comidas, tareas tachadas, agua, entrenamientos cargados, semanas y el plazo. Se mantienen tus tareas, rutina de entreno, recetas, Mi menú, objetivo y finanzas.<br><b>Borrar todo</b>: deja la página como nueva.<br>Antes, si querés, copiá tus datos en Copia de seguridad.</p>
     <div class="mini-btns" style="margin-top:0"><button class="btn ghost" id="rstLogs" style="color:var(--warn)">Borrar registros</button><button class="btn ghost" id="rstAll" style="color:var(--warn)">Borrar todo</button></div>`);
   bindBackup(); bindReset();
+  if($("logoutBtn")) $("logoutBtn").onclick=async()=>{ saveLocal(); try{ if(fbRoot) fbRoot.off(); await firebase.auth().signOut(); }catch(e){} try{sessionStorage.removeItem("cc-skip");}catch(e){} location.reload(); };
+  if($("loginFromSettings")) $("loginFromSettings").onclick=()=>{ try{sessionStorage.removeItem("cc-skip");}catch(e){} closeSheet(); showLogin(); };
   let sex=p.sex, goal=p.goal;
   const read=()=>{let h=+String($("sH").value).replace(",",".");if(h>0&&h<3)h=Math.round(h*100);return {sex,goal,age:+$("sAge").value,weight:+String($("sW").value).replace(",","."),height:h,activity:+$("sAct").value};};
   const upd=(fill)=>{const g=calcGoals(read());
@@ -2030,7 +2147,7 @@ function importFromURL(){
 /* ---------- Copia de seguridad ---------- */
 function exportData(){return JSON.stringify({app:"contadora",v:1,exported:new Date().toISOString(),profile,T,favs,recipes,routine,workout,days,weeks,trains,fin,finMonths});}
 function persistAll(){
-  if(mode!=="db"){saveLocal();return;}
+  if(!remote()){saveLocal();return;}
   persistProfile();persistTasks();persistFavs();persistRecipes();persistRoutine();persistWorkout();
   for(const d of Object.keys(days))persistDay(d);
   for(const m of Object.keys(weeks))persistWeek(m);
@@ -2058,8 +2175,8 @@ function bindBackup(){
 
 /* ---------- Empezar de cero ---------- */
 function deleteDocKey(key){
-  if(mode!=="db"||!col) return;
-  chains[key]=(chains[key]||Promise.resolve()).then(()=>col.doc(key).delete()).catch(()=>setSync("No se pudo borrar todo. Revisá tu conexión.",true));
+  if(!remote()) return;
+  chains[key]=(chains[key]||Promise.resolve()).then(()=>storeDel(key)).catch(()=>setSync("No se pudo borrar todo. Revisá tu conexión.",true));
 }
 function snapshotState(){return clone({profile,T,favs,recipes,routine,workout,days,weeks,trains,fin,finMonths});}
 function restoreState(o){profile=o.profile;T=o.T;favs=o.favs;recipes=o.recipes;routine=o.routine;workout=o.workout;days=o.days;weeks=o.weeks;trains=o.trains;fin=o.fin;finMonths=o.finMonths;persistAll();render();}
@@ -2077,7 +2194,7 @@ function resetData(all){
     workout=isOwnerUser?clone(DEFAULT_WORKOUT):{days:[]};
     persistRoutine(); persistWorkout();
   }
-  persistTasks(); if(mode!=="db") saveLocal();
+  persistTasks(); if(!remote()||mode==="fb") saveLocal();
   current=todayStr(); weekCur=mondayOf(current);
   closeSheet(); render();
   toast(all?"Borraste todo: la página quedó como nueva":"Registros borrados: arrancás de cero","Deshacer",()=>restoreState(prev));
@@ -2090,6 +2207,11 @@ function bindReset(){
 }
 
 /* ---------- Eventos ---------- */
+if($("loginBtn")){
+  $("loginBtn").onclick=doLogin;
+  $("loginSkip").onclick=()=>{ try{sessionStorage.setItem("cc-skip","1");}catch(e){} startOffline(); };
+  $("loginLogo").innerHTML=document.querySelector(".logo").innerHTML.replace('width="42" height="42"','width="72" height="72"');
+}
 $("dPrev").onclick=()=>{if(view==="semana")weekCur=addDays(weekCur,-7);else current=addDays(current,-1);render();};
 $("dNext").onclick=()=>{const t=todayStr();if(view==="semana"){if(weekCur<mondayOf(t))weekCur=addDays(weekCur,7);}else if(current<t)current=addDays(current,1);render();};
 $("dLabel").onclick=()=>{current=todayStr();weekCur=mondayOf(current);render();};
