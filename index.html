@@ -346,9 +346,10 @@
       <div id="dailyList"></div>
       <form class="new-row" id="newDaily"><input class="input" id="newDailyName" placeholder="Nueva tarea…" maxlength="80"><button class="btn" type="submit">Agregar</button></form>
       <div class="daychips" id="newDailyDays"></div>
-      <div id="newDateWrap" hidden style="margin-top:8px"><input class="input" id="newDailyDate" type="date" style="max-width:200px"></div>
+      <div id="newDateWrap" hidden style="margin-top:8px;display:flex;gap:8px;flex-wrap:wrap;align-items:center"><input class="input" id="newDailyDate" type="date" style="max-width:170px"><input class="input" id="newDailyTime" type="time" style="max-width:120px" title="Hora (opcional)"><span class="muted" style="font-size:12.5px">Hora opcional, para el aviso</span></div>
       <div class="chips" id="dailySugg" style="margin:10px 0 0"></div>
     </section>
+    <section class="card" id="closeCard" hidden></section>
     <section class="card" id="trainMini" hidden></section>
     <section class="card" id="weekMini"></section>
   </main>
@@ -398,6 +399,8 @@
     <section class="card" id="finAdd"></section>
     <section class="card" id="finSubs"></section>
     <section class="card" id="finList"></section>
+    <section class="card" id="finInc"></section>
+    <section class="card" id="finGoals"></section>
   </main>
 
   <!-- RECETAS -->
@@ -450,6 +453,7 @@
   <!-- PROGRESO -->
   <main id="v-prog" class="view" hidden>
     <section class="card" id="resumen"></section>
+    <section class="card" id="chalCard"></section>
     <div id="progTop"></div>
     <div class="stats" id="stats"></div>
     <section class="card">
@@ -473,7 +477,6 @@
     <button data-view="calorias"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3c3 3.5 6 6.5 6 10.5A6 6 0 0 1 6 13.5C6 10.5 8 8 9.5 6.5c.5 2 1.5 3 2.5 3.5C12 7.5 12 5 12 3Z"/></svg>Calorías</button>
     <button data-view="entreno"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M6.5 6.5v11M17.5 6.5v11M3.5 9v6M20.5 9v6M6.5 12h11"/></svg>Entreno</button>
     <button data-view="finanzas"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="6" width="18" height="13" rx="3"/><path d="M3 10h18M16 14.5h2"/><path d="M6 6l9-3 1.5 3"/></svg>Finanzas</button>
-    <button data-view="semana"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="3.5" y="5" width="17" height="15" rx="3"/><path d="M3.5 10h17M8 3v4M16 3v4"/></svg>Semana</button>
     <button data-view="progreso"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/></svg>Progreso</button>
   </div>
 </nav>
@@ -600,7 +603,7 @@ const FOODS = [
 const MEALS = [["desayuno","Desayuno"],["almuerzo","Almuerzo"],["cena","Cena"],["postre","Postre"]];
 const LEGACY_MEALS = [["merienda","Merienda"],["snack","Colaciones"]];
 const ACTIVITY = [[1.2,"Sedentario (poco o nada de ejercicio)"],[1.375,"Liviano (1–3 entrenamientos/semana)"],[1.55,"Moderado (3–5 entrenamientos/semana)"],[1.725,"Alto (6–7 entrenamientos/semana)"],[1.9,"Muy alto (entrenamiento + trabajo físico)"]];
-const DEFAULT_PROFILE = {configured:false,sex:"m",age:"",weight:"",height:"",activity:1.375,goal:"mantener",kcal:2000,protein:110,carbs:240,fat:65,stepsGoal:10000,restSec:120};
+const DEFAULT_PROFILE = {closeOn:true,configured:false,sex:"m",age:"",weight:"",height:"",activity:1.375,goal:"mantener",kcal:2000,protein:110,carbs:240,fat:65,stepsGoal:10000,restSec:120};
 const STEPS_SINCE = "2026-11-25";
 const ROUTINE_SUGG = ["Pollo","Carne roja","Pescado","Atún","Huevo","Legumbres","Queso","Yogur","Arroz","Papa","Batata","Avena","Verduras de hoja","Brócoli","Tomate","Zapallo","Banana","Manzana","Frutillas","Palta","Frutos secos"];
 const DAILY_SUGG = ["Entrenar","Tomar 2 L de agua","Dormir 8 horas","Leer 20 minutos","Estudiar","Caminar 30 minutos","Sin harinas"];
@@ -608,6 +611,9 @@ const WEEKLY_SUGG = [["Ir al gimnasio",4],["Salir a correr",2],["Cocinar viandas
 const VIEWS = {hoy:"Mi día",calorias:"Calorías",entreno:"Entrenamiento",finanzas:"Finanzas",recetas:"Recetas",semana:"Mi semana",progreso:"Progreso"};
 const WD = [[1,"L","Lun"],[2,"M","Mar"],[3,"X","Mié"],[4,"J","Jue"],[5,"V","Vie"],[6,"S","Sáb"],[0,"D","Dom"]];
 const FIN_CATS = [["salidas","Comidas y salidas","🍽️"],["super","Supermercado","🛒"],["transporte","Transporte","🚗"],["suscripciones","Suscripciones","📺"],["salud","Gym y salud","💪"],["hogar","Hogar y servicios","🏠"],["compras","Compras","🛍️"],["otros","Otros","📦"]];
+const INC_CATS = [["sueldo","Sueldo","💼"],["extra","Extra / changas","➕"],["ventas","Ventas","🛍️"],["otros_in","Otros","💵"]];
+const MOODS = [[1,"😞","Mal"],[2,"😕","Flojo"],[3,"😐","Normal"],[4,"🙂","Bien"],[5,"😄","Muy bien"]];
+const CHAL_METRICS = {entrenos:"Entrenamientos registrados",pasos:"Días con tu meta de pasos",tareas:"Días con todas las tareas cumplidas",tope:"Días sin pasarte del tope de calorías"};
 const fARS = new Intl.NumberFormat("es-AR",{style:"currency",currency:"ARS",maximumFractionDigits:0});
 const MONTHS = ["enero","febrero","marzo","abril","mayo","junio","julio","agosto","septiembre","octubre","noviembre","diciembre"];
 const TPL_V = 2;
@@ -630,12 +636,15 @@ let routine = {foods:[],rules:""};
 let ideas = [], ideaMeal = "almuerzo", ideaLoading = false;
 let workout = {days:[]}, trains = {}, trainPick = null, selEx = "", isOwnerUser = false;
 let sessEdit = null; // {date, backup} mientras se editan series
+const sessClosed = new Set(); // sesiones cerradas (se muestran resumidas)
 let sumMode = "semana", sumOff = 0;
 let newDays = [];                 // días elegidos para una tarea nueva (vacío = todos)
 let newDateMode = false;          // tarea de una sola vez con fecha
 let fin = {subs:[],budget:0};     // suscripciones y presupuesto
 let finMonths = {};               // "YYYY-MM" -> {items:[]}
-let finMonth = todayStr().slice(0,7), finCat = "salidas";
+let finMonth = todayStr().slice(0,7), finCat = "salidas", finKind = "gasto", incCat = "sueldo";
+let closeOpen = false;
+let myChal = [], chalData = {}; const chalRefs = {}; const chalPub = {};
 const trainDirty = new Set(), trainTimers = {};
 let days = {};                                // "YYYY-MM-DD" -> {entries, water, done}
 let weeks = {};                               // lunes "YYYY-MM-DD" -> {counts:{id:n}}
@@ -712,7 +721,7 @@ function _oldCalOk(s){const k=totals(s).kcal,g=+profile.kcal||2000;return k>=g*0
 function onWeekday(t,s){if(t.date)return s===t.date;return !t.days||!t.days.length||t.days.length===7||t.days.includes(fromStr(s).getDay());}
 function dailyActive(s){return T.daily.filter(t=>t.created<=s&&(!t.removed||t.removed>s));}
 function dailyOn(s){return dailyActive(s).filter(t=>onWeekday(t,s));}
-function taskLabel(t){return t.date?"Solo el "+clean(fDay.format(fromStr(t.date))):daysLabel(t.days);}
+function taskLabel(t){return t.date?"Solo el "+clean(fDay.format(fromStr(t.date)))+(t.time?" · "+t.time:""):daysLabel(t.days);}
 function daysLabel(d){if(!d||!d.length||d.length===7)return "Todos los días";return WD.filter(w=>d.includes(w[0])).map(w=>w[2]).join(", ");}
 function weeklyOn(m){const sun=addDays(m,6);return T.weekly.filter(t=>t.created<=sun&&(!t.removed||t.removed>m));}
 function dayScore(s){
@@ -751,7 +760,7 @@ function queueWrite(key, body){
 function localKey(){return mode==="fb"&&fbUser?"cc-fb-"+fbUser.uid:"cc-data";}
 let _saveT=null; function saveLocalSoon(){clearTimeout(_saveT);_saveT=setTimeout(saveLocal,400);}
 function saveLocal(){ try{localStorage.setItem(localKey(),JSON.stringify({profile,days,T,favs,weeks,recipes,routine,workout,trains,fin,finMonths}))}catch(e){} }
-function persistDay(s){ if(remote()){const d=getDay(s);queueWrite("day-"+s,{type:"day",date:s,entries:clone(d.entries),water:d.water||0,done:clone(d.done||[]),steps:d.steps||0,act:d.act||0});} else saveLocal(); }
+function persistDay(s){ if(remote()){const d=getDay(s);queueWrite("day-"+s,{type:"day",date:s,entries:clone(d.entries),water:d.water||0,done:clone(d.done||[]),steps:d.steps||0,act:d.act||0,...(d.close?{close:clone(d.close)}:{})});} else saveLocal(); }
 function persistWeek(m){ if(remote()) queueWrite("week-"+m,{type:"week",monday:m,counts:clone(getWeek(m).counts)}); else saveLocal(); }
 function persistProfile(){ if(remote()) queueWrite("profile",{type:"profile",...clone(profile)}); else saveLocal(); }
 function persistTasks(){ if(remote()) queueWrite("tasks",{type:"tasks",...clone(T)}); else saveLocal(); }
@@ -825,6 +834,7 @@ function startFb(u){
         return; }
     }
     if(v) applyRemote(Object.entries(v).map(([id,data])=>({id,data})));
+    subscribeChallenges(); publishChallengesSoon();
     saveLocalSoon(); setSync("Guardado en tu cuenta · "+(u.email||"")); render();
   },err=>setSync("No se pudo leer tu cuenta ("+((err&&err.code)||"error")+"). Revisá las reglas de Firebase.",true));
   try{ firebase.database().ref(".info/connected").on("value",c=>{ if(c.val()===false&&fbUser) setSync("Sin conexión: se guarda cuando vuelva internet",true); }); }catch(e){}
@@ -887,7 +897,7 @@ async function initStore(){
   },()=>{clearTimeout(timer);setSync("Se perdió la conexión con el guardado. Recargá la página.",true);});
 }
 function applyRemote(docs){
-    const nd={},nw={},ntr={},nfm={};let np=null,nt=null,nf=null,nr=null,nro=null,nwo=null,nfin=null;
+    const nd={},nw={},ntr={},nfm={};let np=null,nt=null,nf=null,nr=null,nro=null,nwo=null,nfin=null,nch=null;
     for(const doc of docs){
       const data=doc.data; if(!data||typeof data!=="object") continue;
       if(doc.id==="profile") np=clone(data);
@@ -897,9 +907,10 @@ function applyRemote(docs){
       else if(doc.id==="routine") nro=clone(data);
       else if(doc.id==="workout") nwo=clone(data);
       else if(doc.id==="finance") nfin=clone(data);
-      else if(doc.id.startsWith("fin-")) nfm[doc.id.slice(4)]={items:clone(data.items||[])};
+      else if(doc.id.startsWith("fin-")) nfm[doc.id.slice(4)]={items:clone(data.items||[]),inc:clone(data.inc||[])};
+      else if(doc.id==="challenges") nch=clone(data.codes||[]);
       else if(doc.id.startsWith("train-")) ntr[doc.id.slice(6)]=clone(data);
-      else if(doc.id.startsWith("day-")) nd[doc.id.slice(4)]={entries:clone(data.entries||[]),water:data.water||0,done:clone(data.done||[]),steps:data.steps||0,act:data.act||0};
+      else if(doc.id.startsWith("day-")) nd[doc.id.slice(4)]={entries:clone(data.entries||[]),water:data.water||0,done:clone(data.done||[]),steps:data.steps||0,act:data.act||0,...(data.close?{close:clone(data.close)}:{})};
       else if(doc.id.startsWith("week-")) nw[doc.id.slice(5)]={counts:clone(data.counts||{})};
     }
     days=nd; weeks=nw;
@@ -914,7 +925,8 @@ function applyRemote(docs){
     }
     for(const d of trainDirty){ if(trains[d]) ntr[d]=trains[d]; else delete ntr[d]; }
     trains=ntr; finMonths=nfm;
-    if(nfin) fin={subs:nfin.subs||[],budget:nfin.budget||0};
+    if(nfin) fin={subs:nfin.subs||[],budget:nfin.budget||0,incFix:nfin.incFix||[],goals:nfin.goals||[]};
+    if(nch) myChal=Array.isArray(nch)?nch:Object.values(nch);
     if(nro){delete nro.type;routine={foods:nro.foods||[],rules:nro.rules||""};}
     normalizeAll();
 }
@@ -928,13 +940,14 @@ function normalizeAll(){
   for(const k of Object.keys(days)){const d=days[k];d.entries=d.entries||[];d.done=d.done||[];}
   for(const k of Object.keys(weeks)){weeks[k].counts=weeks[k].counts||{};}
   for(const k of Object.keys(trains)){const t=trains[k];t.ex=(t.ex||[]).map(e=>({...e,sets:e.sets||[]}));}
-  fin={subs:[],budget:0,...fin}; fin.subs=fin.subs||[];
-  for(const k of Object.keys(finMonths)){finMonths[k].items=finMonths[k].items||[];}
+  fin={subs:[],budget:0,incFix:[],goals:[],...fin}; fin.subs=fin.subs||[]; fin.incFix=fin.incFix||[]; fin.goals=fin.goals||[];
+  for(const k of Object.keys(finMonths)){finMonths[k].items=finMonths[k].items||[];finMonths[k].inc=finMonths[k].inc||[];}
 }
 
 /* ---------- Navegación ---------- */
 function setView(v){
-  if(!VIEWS[v]) v="hoy"; view=v;
+  if(!VIEWS[v]||v==="semana") v="hoy"; view=v;
+  if(v!=="hoy"&&current>todayStr()) current=todayStr();
   document.querySelectorAll(".tabbar button").forEach(b=>b.classList.toggle("on",b.dataset.view===(v==="recetas"?"calorias":v)));
   $("v-hoy").hidden=v!=="hoy"; $("v-cal").hidden=v!=="calorias"; $("v-rec").hidden=v!=="recetas"; $("v-train").hidden=v!=="entreno"; $("v-fin").hidden=v!=="finanzas"; $("v-sem").hidden=v!=="semana"; $("v-prog").hidden=v!=="progreso";
   $("title").textContent=VIEWS[v];
@@ -945,6 +958,7 @@ window.addEventListener("hashchange",()=>{const h=location.hash.slice(1);if(h&&h
 
 /* ---------- Render ---------- */
 function render(){
+  if(mode==="fb"&&myChal.length) publishChallengesSoon();
   renderDatebar();
   if(view==="hoy") renderHoy();
   else if(view==="calorias") renderCal();
@@ -963,45 +977,65 @@ function renderDatebar(){
     $("dLabel").textContent=(weekCur===mondayOf(t)?"Esta semana · ":"")+clean(fShort.format(fromStr(weekCur)))+" al "+clean(fShort.format(fromStr(sun)));
     $("dNext").disabled=weekCur>=mondayOf(t);
   }else{
-    const pre=current===t?"Hoy · ":current===addDays(t,-1)?"Ayer · ":"";
+    const pre=current===t?"Hoy · ":current===addDays(t,-1)?"Ayer · ":current===addDays(t,1)?"Mañana · ":"";
     $("dLabel").textContent=pre+clean(fDay.format(fromStr(current)));
-    $("dNext").disabled=current>=t;
+    $("dNext").disabled=view==="hoy"?current>=addDays(t,90):current>=t;
   }
 }
 
 /* ---- HOY ---- */
+function renderClose(){
+  const el=$("closeCard");
+  if(profile.closeOn===false||current>todayStr()){el.hidden=true;return;}
+  el.hidden=false; const d=days[current]||{}; const c=d.close;
+  if(c&&!closeOpen){ const md=MOODS.find(x=>x[0]===c.mood);
+    el.innerHTML=`<div class="card-head"><h2>Cierre del día</h2><button class="link" data-closeedit="1" style="font-size:13px">editar</button></div>
+      <p style="margin:0;font-size:15px">${md?md[1]+" "+md[2]:""}${c.note?`<span class="muted" style="display:block;margin-top:4px;font-size:14px">"${esc(c.note)}"</span>`:""}</p>`; return; }
+  if(!closeOpen){ el.innerHTML=`<div style="display:flex;gap:8px;align-items:center"><button class="add-btn" data-closeedit="1" style="margin:0;flex:1">📝 Cerrar el día (opcional): ¿cómo te fue?</button><button class="del" data-closehide="1" title="Ocultar el cierre del día" aria-label="Ocultar el cierre del día">×</button></div>`; return; }
+  let mood=c?c.mood:0;
+  el.innerHTML=`<div class="card-head"><h2>¿Cómo te fue ${current===todayStr()?"hoy":"ese día"}?</h2><button class="del" data-closex="1" aria-label="Cerrar">×</button></div>
+    <div class="chips" id="moodPick" style="justify-content:space-between">${MOODS.map(([v,e,l])=>`<button class="chip${mood===v?" on":""}" data-mood="${v}" title="${l}" style="font-size:22px;padding:6px 10px">${e}</button>`).join("")}</div>
+    <textarea class="input" id="closeNote" placeholder="Escribí lo que quieras (opcional): cómo te sentiste, qué salió bien, qué mejorar mañana…" style="min-height:90px">${esc(c&&c.note||"")}</textarea>
+    <div class="mini-btns">${c?`<button class="btn ghost" id="closeDel">Borrar</button>`:""}<button class="btn" id="closeSave">Guardar</button></div>`;
+  $("moodPick").onclick=e=>{const b=e.target.closest("[data-mood]");if(!b)return;mood=+b.dataset.mood;$("moodPick").querySelectorAll(".chip").forEach(x=>x.classList.toggle("on",x===b));};
+  $("closeSave").onclick=()=>{const note=$("closeNote").value.trim(); if(!mood&&!note){toast("Elegí una carita o escribí algo");return;}
+    getDay(current).close={mood,note}; closeOpen=false; persistDay(current); render(); toast("Día cerrado 🌙");};
+  if($("closeDel")) $("closeDel").onclick=()=>{delete getDay(current).close; closeOpen=false; persistDay(current); render();};
+}
 function renderHoy(){
-  renderFinTip();
+  renderFinTip(); renderClose();
   const tipEl=$("sumTip"); const td=fromStr(todayStr());
   if(current===todayStr()&&(td.getDay()===1||td.getDate()===1)){
     const m=td.getDate()===1;
     tipEl.hidden=false; tipEl.innerHTML=`<span class="tip-ic">📊</span><p>Ya está tu resumen ${m?"del mes pasado":"de la semana pasada"}. <button class="link" data-gosum="${m?"mes":"semana"}">Verlo</button></p>`;
   } else tipEl.hidden=true;
   const sc=dayScore(current); const ratio=sc.done/sc.total;
-  const msg=ratio>=1?"¡Cumpliste todo hoy! 🎉":sc.done===0?"Arrancá tachando tu primera tarea.":`Te ${sc.total-sc.done===1?"falta 1 tarea":"faltan "+(sc.total-sc.done)+" tareas"} para completar el día.`;
+  const fut=current>todayStr();
+  const msg=fut?`${sc.total===1?"Tenés 1 tarea":"Tenés "+sc.total+" tareas"} para ${current===addDays(todayStr(),1)?"mañana":"ese día"}.`:ratio>=1?"¡Cumpliste todo hoy! 🎉":sc.done===0?"Arrancá tachando tu primera tarea.":`Te ${sc.total-sc.done===1?"falta 1 tarea":"faltan "+(sc.total-sc.done)+" tareas"} para completar el día.`;
   $("heroCard").innerHTML=`<div class="ring-wrap">${ringSvg(92,10,ratio,"var(--green)")}<div class="ring-center"><span class="big num">${sc.done}/${sc.total}</span></div></div>
-    <div><h2>${current===todayStr()?"Tu día de hoy":"Tu día"}</h2><p>${msg}</p></div>`;
+    <div><h2>${current===todayStr()?"Tu día de hoy":fut?(current===addDays(todayStr(),1)?"Mañana":"Ese día"):"Tu día"}</h2><p>${msg}</p></div>`;
   const ts=dailyOn(current); const done=new Set((days[current]&&days[current].done)||[]);
   $("dailyCount").textContent=`${sc.done} de ${sc.total}`;
   const t=totals(current); const g=+profile.kcal||2000; const ok=calOk(current);
   const calTxt=t.kcal===0?"Registrá tus comidas del día":ok?`Margen: ${fmt(g-t.kcal)} kcal · proteína ${r0(t.p)}/${r0(profile.protein)} g`:`Te pasaste ${fmt(t.kcal-g)} kcal del tope`;
-  let html=`<div class="cal-task" role="button" tabindex="0" data-goto="calorias">
+  let html=fut?`<div class="task"><span class="check auto" aria-hidden="true">${TICK}</span><span class="tname">${calLabel()}<span class="tmeta">Se tacha sola si no te pasás</span></span></div>`:`<div class="cal-task" role="button" tabindex="0" data-goto="calorias">
       <span class="check auto${ok?" on":""}" aria-hidden="true">${TICK}</span>
       <div class="info"><div class="tname">${calLabel()}</div><div class="tmeta num" style="font-size:12.5px;color:var(--muted)">${fmt(t.kcal)} de ${fmt(g)} kcal · ${calTxt}</div>
       <div class="bar"><i style="width:${Math.min(100,t.kcal/g*100)}%;background:${t.kcal>g?"var(--warn)":"var(--green)"}"></i></div></div>
     </div>
     <div class="mini-btns"><button class="btn ghost" data-quickadd="1">+ Agregar comida</button><button class="btn ghost" data-goto="calorias">Ver calorías</button></div>`;
-  if(stepsGoal()>0){ const st=stepsOf(current), sok=stepsOk(current);
+  if(fut&&stepsGoal()>0) html+=`<div class="task"><span class="check auto" aria-hidden="true">${TICK}</span><span class="tname">${fmt(stepsGoal())} pasos</span></div>`;
+  else if(stepsGoal()>0){ const st=stepsOf(current), sok=stepsOk(current);
     html+=`<div class="task${sok?" done":""}" style="margin-top:6px"><span class="check auto${sok?" on":""}" aria-hidden="true">${TICK}</span><span class="tname">${fmt(stepsGoal())} pasos<span class="tmeta">${st?`${fmt(st)} hoy${sok?" · ¡meta cumplida!":` · te faltan ${fmt(stepsGoal()-st)}`}`:"Anotá los pasos de tu pulsera"}</span></span><input class="input num steps-in" id="stepsIn" type="text" inputmode="numeric" placeholder="Pasos" value="${st||""}" aria-label="Pasos del día"></div>`; }
-  html+=ts.map(x=>`<div class="task${done.has(x.id)?" done":""}"><button class="check${done.has(x.id)?" on":""}" data-toggle="${x.id}" aria-label="Marcar ${esc(x.name)}">${TICK}</button><span class="tname">${esc(x.name)}${x.date?`<span class="tmeta">📅 ${esc(taskLabel(x))}</span>`:x.days&&x.days.length&&x.days.length<7?`<span class="tmeta">${esc(daysLabel(x.days))}</span>`:""}</span><button class="del" data-editdaily="${x.id}" aria-label="Editar tarea" title="Editar" style="font-size:15px">✎</button><button class="del" data-rmdaily="${x.id}" aria-label="Eliminar tarea">×</button></div>`).join("");
+  html+=ts.map(x=>`<div class="task${done.has(x.id)?" done":""}"><button class="check${done.has(x.id)?" on":""}" data-toggle="${x.id}" aria-label="Marcar ${esc(x.name)}" ${fut?'disabled style="opacity:.45;cursor:default"':""}>${TICK}</button><span class="tname">${esc(x.name)}${x.date?`<span class="tmeta">📅 ${esc(taskLabel(x))}</span>`:x.days&&x.days.length&&x.days.length<7?`<span class="tmeta">${esc(daysLabel(x.days))}</span>`:""}</span>${x.date&&x.date>=todayStr()?`<button class="del" data-remind="${x.id}" aria-label="Avisarme en el celular" title="Avisarme en el celular" style="font-size:15px">🔔</button>`:""}<button class="del" data-editdaily="${x.id}" aria-label="Editar tarea" title="Editar" style="font-size:15px">✎</button><button class="del" data-rmdaily="${x.id}" aria-label="Eliminar tarea">×</button></div>`).join("");
   if(!ts.length) html+=`<p class="muted empty">${dailyActive(current).length?"Hoy no tenés otras tareas programadas.":"Agregá tus tareas: las de todos los días o solo algunos días (por ejemplo, gym lunes, miércoles y viernes)."}</p>`;
   const others=dailyActive(current).filter(x=>!x.date&&!onWeekday(x,current));
   const upcoming=T.daily.filter(x=>x.date&&!x.removed&&x.date>current).sort((a,b)=>a.date<b.date?-1:1);
   if(others.length) html+=`<div class="later">Otros días: ${others.map(x=>`<b style="color:var(--ink);font-weight:600">${esc(x.name)}</b> (${esc(daysLabel(x.days))}) <button class="link" data-editdaily="${x.id}" style="font-size:12.5px">editar</button>`).join(" · ")}</div>`;
-  if(upcoming.length) html+=`<div class="later">📅 Próximas: ${upcoming.slice(0,6).map(x=>`<b style="color:var(--ink);font-weight:600">${esc(x.name)}</b> (${esc(clean(fDay.format(fromStr(x.date))))}) <button class="link" data-editdaily="${x.id}" style="font-size:12.5px">editar</button>`).join(" · ")}${upcoming.length>6?` · y ${upcoming.length-6} más`:""}</div>`;
+  if(upcoming.length) html+=`<div class="later">📅 Próximas: ${upcoming.slice(0,6).map(x=>`<b style="color:var(--ink);font-weight:600">${esc(x.name)}</b> (${esc(clean(fDay.format(fromStr(x.date))))}${x.time?" · "+esc(x.time):""}) <button class="link" data-remind="${x.id}" style="font-size:12.5px">🔔</button> <button class="link" data-editdaily="${x.id}" style="font-size:12.5px">editar</button>`).join(" · ")}${upcoming.length>6?` · y ${upcoming.length-6} más`:""}</div>`;
   $("dailyList").innerHTML=`<div>${html}</div>`;
   $("newDailyDays").innerHTML=`<button type="button" class="chip${!newDays.length&&!newDateMode?" on":""}" data-nd="all">Todos los días</button>`+WD.map(([n,l,full])=>`<button type="button" class="chip${!newDateMode&&newDays.includes(n)?" on":""}" data-nd="${n}" title="${full}">${l}</button>`).join("")+`<button type="button" class="chip${newDateMode?" on":""}" data-nd="date">📅 Una fecha</button>`;
-  $("newDateWrap").hidden=!newDateMode; if(newDateMode&&!$("newDailyDate").value) $("newDailyDate").value=addDays(todayStr(),1);
+  $("newDateWrap").hidden=!newDateMode; if(newDateMode&&!$("newDailyDate").value) $("newDailyDate").value=current>todayStr()?current:addDays(todayStr(),1);
   $("newDailyDate").min=todayStr();
   const names=new Set(T.daily.filter(x=>!x.removed).map(x=>norm(x.name)));
   $("dailySugg").innerHTML=DAILY_SUGG.filter(s=>!names.has(norm(s))).slice(0,5).map(s=>`<button class="chip" data-sugd="${esc(s)}">+ ${esc(s)}</button>`).join("");
@@ -1009,17 +1043,20 @@ function renderHoy(){
   const tm=$("trainMini");
   if(workout.days.length){
     tm.hidden=false; const s=trains[current]; const st=s?sessionStats(s):null;
-    tm.innerHTML=s&&st.sets?`<div class="card-head"><h2>Entrenamiento</h2><span class="num">✅ registrado</span></div><p class="muted" style="margin:0">${esc(s.dayName)} · ${st.sets} ${st.sets===1?"serie":"series"}${st.vol?` · ${fmt(st.vol)} kg de volumen`:""}${st.prs?` · ${st.prs} ${st.prs===1?"récord":"récords"} 🏆`:""}</p><button class="add-btn" data-goto="entreno" style="margin-top:10px">Ver o editar</button>`
-      :nextDay()?`<div class="card-head"><h2>Entrenamiento</h2></div><p class="muted" style="margin:0">${current===todayStr()?"Hoy toca":"Ese día tocaba"}: <b style="color:var(--ink)">${esc(nextDay().name)}</b></p><button class="add-btn" data-goto="entreno" style="margin-top:10px">Registrar entrenamiento</button>`
-      :`<div class="card-head"><h2>Entrenamiento</h2><span class="num">😴 descanso</span></div><p class="muted" style="margin:0">${current===todayStr()?"Hoy":"Ese día"} no te toca gimnasio según tus días fijos.</p>`;
+    tm.innerHTML=s&&st.sets?`<div class="card-head"><h2>Entrenamiento</h2><span class="num">✅ registrado</span></div><p class="muted" style="margin:0">${esc(s.dayName)} · ${st.sets} ${st.sets===1?"serie":"series"}${st.vol?` · ${fmt(st.vol)} kg de volumen`:""}${st.prs?` · ${st.prs} ${st.prs===1?"récord":"récords"} 🏆`:""}</p><button class="add-btn" data-gotrain="1" style="margin-top:10px">Ver o editar</button>`
+      :nextDay()?`<div class="card-head"><h2>Entrenamiento</h2></div><p class="muted" style="margin:0">${current===todayStr()?"Hoy toca":current>todayStr()?(current===addDays(todayStr(),1)?"Mañana toca":"Ese día toca"):"Ese día tocaba"}: <b style="color:var(--ink)">${esc(nextDay().name)}</b></p>${current>todayStr()?"":`<button class="add-btn" data-goto="entreno" style="margin-top:10px">Registrar entrenamiento</button>`}`
+      :`<div class="card-head"><h2>Entrenamiento</h2><span class="num">😴 descanso</span></div><p class="muted" style="margin:0">${current===todayStr()?"Hoy":current===addDays(todayStr(),1)?"Mañana":"Ese día"} no te toca gimnasio según tus días fijos.</p>`;
   } else tm.hidden=true;
-  // semana mini
+  // semana mini (ya no se usa: las tareas son por día)
+  $("weekMini").hidden=true;
+  if(false){
   const m=mondayOf(current); const wts=weeklyOn(m); const c=(weeks[m]&&weeks[m].counts)||{};
   const ws=weekScore(m);
   $("weekMini").innerHTML=`<div class="card-head"><h2>Esta semana</h2>${ws!=null?`<span class="num">${r0(ws*100)}% cumplido</span>`:""}</div>
     ${wts.length?wts.map(x=>{const n=c[x.id]||0;return `<div class="macro"><div class="macro-head"><span>${esc(x.name)}</span><span class="num">${n}/${x.target}</span></div><div class="bar"><i style="width:${Math.min(100,n/x.target*100)}%"></i></div></div>`}).join("")
     :`<p class="muted" style="margin:4px 0 0">Todavía no tenés tareas semanales.</p>`}
     <button class="add-btn" data-goto="semana" style="margin-top:12px">${wts.length?"Sumar o ver la semana":"+ Crear tareas semanales"}</button>`;
+  }
 }
 
 /* ---- CALORÍAS ---- */
@@ -1158,13 +1195,14 @@ function sumRange(off){
 }
 function periodStats(a,b){
   const t=todayStr(); const end=b<t?b:t; if(end<a) return null;
-  const n=diffDays(a,end)+1; const r={n,full:diffDays(a,b)+1,logged:0,kcal:0,p:0,calOk:0,sd:0,st:0,sess:0,vol:0,sets:0,prs:[],steps:0,stepsDays:0,stepsOk:0,water:0};
+  const n=diffDays(a,end)+1; const r={moods:[],n,full:diffDays(a,b)+1,logged:0,kcal:0,p:0,calOk:0,sd:0,st:0,sess:0,vol:0,sets:0,prs:[],steps:0,stepsDays:0,stepsOk:0,water:0};
   for(let i=0;i<n;i++){const s=addDays(a,i); const tt=totals(s);
     if(tt.kcal>0){r.logged++;r.kcal+=tt.kcal;r.p+=tt.p;}
     if(calOk(s)) r.calOk++;
     const x=dayScore(s); r.sd+=x.done; r.st+=x.total;
     const so=stepsOf(s); if(so){r.steps+=so;r.stepsDays++;} if(stepsOk(s)) r.stepsOk++;
     r.water+=(days[s]&&days[s].water)||0;
+    if(days[s]&&days[s].close&&days[s].close.mood) r.moods.push(days[s].close.mood);
     const tr=trains[s]; if(tr){const ss=sessionStats(tr); if(ss.sets){r.sess++;r.vol+=ss.vol;r.sets+=ss.sets;
       for(const ex of tr.ex){const bs=bestSet(ex),pb=prevBest(ex.key,s); if(bs&&pb&&bs.w>pb) r.prs.push(`${ex.name}: ${fmtSet(bs)}`);}}}
   }
@@ -1195,8 +1233,8 @@ function renderResumen(){
       <div class="stat" style="box-shadow:none;background:#f8f6f0"><b class="num">${c.logged?r0(c.pAvg)+" g":"–"}</b><span>proteína promedio (objetivo ${r0(profile.protein)} g) ${c.logged&&pv&&pv.logged?deltaHtml(c.pAvg,pv.pAvg,v=>r0(v)+" g",true):""}</span></div>
       <div class="stat" style="box-shadow:none;background:#f8f6f0"><b class="num">${c.calOk}/${c.n}</b><span>días sin pasarte del tope de calorías</span></div>
       ${stepsGoal()>0?`<div class="stat" style="box-shadow:none;background:#f8f6f0"><b class="num">${c.stepsDays?fmt(c.stepsAvg):"–"}</b><span>pasos promedio · ${c.stepsOk} ${c.stepsOk===1?"día":"días"} con ${fmt(stepsGoal())} o más ${c.stepsDays&&pv&&pv.stepsDays?deltaHtml(c.stepsAvg,pv.stepsAvg,v=>fmt(v),true):""}</span></div>`:""}
-      ${c.wk!=null?`<div class="stat" style="box-shadow:none;background:#f8f6f0"><b class="num">${pct(c.wk)}</b><span>de tus tareas semanales cumplidas</span></div>`:""}
-      ${(()=>{const ft=finTotals(R.a,R.b<todayStr()?R.b:todayStr()),fp=finTotals(P.a,P.b);return ft.total?`<div class="stat" style="box-shadow:none;background:#f8f6f0"><b class="num" style="font-size:24px">${money(ft.total)}</b><span>gastados ${fp.total?deltaHtml(ft.total,fp.total,v=>money(v),false):""}</span></div>`:"";})()}
+      ${(()=>{const ft=finTotals(R.a,R.b<todayStr()?R.b:todayStr()),fp=finTotals(P.a,P.b);return (ft.total?`<div class="stat" style="box-shadow:none;background:#f8f6f0"><b class="num" style="font-size:24px">${money(ft.total)}</b><span>gastados ${fp.total?deltaHtml(ft.total,fp.total,v=>money(v),false):""}</span></div>`:"")+(ft.inc?`<div class="stat" style="box-shadow:none;background:#f8f6f0"><b class="num" style="font-size:24px;color:${ft.bal>=0?"var(--green-ink)":"var(--warn)"}">${money(ft.bal)}</b><span>${ft.bal>=0?"te quedaron":"de diferencia"} (entraron ${money(ft.inc)})</span></div>`:"");})()}
+      ${c.moods.length?(()=>{const av=c.moods.reduce((x,y)=>x+y,0)/c.moods.length;const md=MOODS[Math.min(4,Math.max(0,Math.round(av)-1))];return `<div class="stat" style="box-shadow:none;background:#f8f6f0"><b class="num">${md[1]} ${r1(av).toLocaleString("es-AR")}</b><span>ánimo promedio (${c.moods.length} ${c.moods.length===1?"cierre":"cierres"} del día)</span></div>`;})():""}
       <div class="stat" style="box-shadow:none;background:#f8f6f0"><b class="num">${r1(c.waterAvg).toLocaleString("es-AR")}</b><span>vasos de agua por día en promedio</span></div>
     </div>
     ${c.prs.length?`<div class="section-label">Récords del período 🏆</div><ul class="prlist">${c.prs.slice(0,8).map(x=>`<li>${esc(x)}</li>`).join("")}</ul>`:""}`;
@@ -1206,8 +1244,97 @@ function renderResumen(){
     <div class="sumhead"><button class="arrow" data-sumoff="-1" aria-label="Anterior">‹</button><span class="lbl">${esc(R.label)}</span><button class="arrow" data-sumoff="1" aria-label="Siguiente" ${sumOff>=0?"disabled":""}>›</button></div>
     ${body}`;
 }
+function chalRange(meta){const t=todayStr();return {a:meta.start,b:meta.end<t?meta.end:t};}
+function chalScore(meta){const {a,b}=chalRange(meta); if(b<a) return 0; let n=0;
+  for(let s=a;s<=b;s=addDays(s,1)){
+    if(meta.metric==="entrenos"&&trainDone(s)) n++;
+    else if(meta.metric==="pasos"&&stepsOk(s)) n++;
+    else if(meta.metric==="tope"&&calOk(s)) n++;
+    else if(meta.metric==="tareas"){const x=dayScore(s); if(x.total&&x.done===x.total) n++;}
+  } return n;}
+function myName(){const u=fbUser; if(!u) return "Yo"; return ((u.displayName||"").trim().split(/\s+/)[0])||(u.email||"").split("@")[0]||"Yo";}
+function chalOK(){return mode==="fb"&&fbUser&&window.firebase&&firebase.database;}
+function subscribeChallenges(){
+  if(!chalOK()) return;
+  const want=new Set(myChal);
+  for(const code of Object.keys(chalRefs)) if(!want.has(code)){ try{chalRefs[code].off();}catch(e){} delete chalRefs[code]; delete chalData[code]; }
+  for(const code of want) if(!chalRefs[code]){ const r=firebase.database().ref("challenges/"+code); chalRefs[code]=r;
+    r.on("value",sn=>{ chalData[code]=sn.val()||null; publishChallengesSoon(); if(view==="progreso") renderChallenges(); },()=>{}); }
+}
+let _chalT=null; function publishChallengesSoon(){ clearTimeout(_chalT); _chalT=setTimeout(publishChallenges,1500); }
+function publishChallenges(){
+  if(!chalOK()) return;
+  for(const code of myChal){ const cd=chalData[code]; if(!cd||!cd.meta) continue;
+    const sc=chalScore(cd.meta), nm=myName(), key=sc+"|"+nm;
+    const cur=cd.members&&cd.members[fbUser.uid];
+    if(chalPub[code]===key&&cur) continue;
+    if(cur&&cur.score===sc&&cur.name===nm){chalPub[code]=key;continue;}
+    chalPub[code]=key;
+    firebase.database().ref("challenges/"+code+"/members/"+fbUser.uid).set({name:nm,score:sc,at:Date.now()}).catch(()=>{});
+  }
+}
+function persistChal(){ if(remote()) queueWrite("challenges",{type:"challenges",codes:clone(myChal)}); else saveLocal(); }
+function newCode(){const A="ABCDEFGHJKLMNPQRSTUVWXYZ23456789";let c="";for(let i=0;i<6;i++)c+=A[Math.floor(Math.random()*A.length)];return c;}
+function renderChallenges(){
+  const el=$("chalCard"); if(!el) return;
+  if(!chalOK()){
+    el.innerHTML=`<h2>Desafíos con amigos 🏆</h2><p class="muted" style="margin:6px 0 0">${STANDALONE?"Para competir con amigos tenés que entrar con tu cuenta de Google (⚙️ → Entrar con Google).":"Los desafíos están en tu página con cuentas (spamsape.github.io/RutinaFran), donde cada amigo entra con su Google."}</p>`; return; }
+  const t=todayStr();
+  const list=myChal.map(code=>{ const cd=chalData[code];
+    if(!cd||!cd.meta) return `<div style="padding:12px 0;border-top:1px solid var(--line)" class="muted">Cargando desafío ${esc(code)}…</div>`;
+    const m=cd.meta; const mem=Object.entries(cd.members||{}).map(([id,x])=>({id,name:String((x&&x.name)||"Alguien"),score:+(x&&x.score)||0})).sort((a,b)=>b.score-a.score);
+    const ended=m.end<t, started=m.start<=t;
+    const top=mem.length?mem[0].score:0, low=mem.length?mem[mem.length-1].score:0, allTied=mem.length>1&&top===low;
+    const face=(x,i)=>allTied?"🤝":x.score===top?"👑":(x.score===low&&mem.length>1)?"😤":"😅";
+    const me=mem.find(x=>x.id===fbUser.uid); const leader=mem[0]; const second=mem.find(x=>x.score<top);
+    let line="";
+    if(mem.length>1&&me){
+      if(allTied) line=`Van empatados con ${top} ${top===1?"punto":"puntos"} 🤝`;
+      else if(me.score===top){ const d=top-(second?second.score:0); line=`¡Vas ganando por ${d}! 👑`; }
+      else { const d=top-me.score; line=`${esc(leader.name)} te va ganando por ${d} 😤 ¡A recuperar!`; }
+    } else if(mem.length===1) line="Invitá a alguien con el código para competir 👇";
+    return `<div style="padding:12px 0;border-top:1px solid var(--line)">
+      <div class="macro-head" style="margin-bottom:2px"><span style="font-size:15px">${esc(m.name)}</span><span class="num">${ended?"terminado":started?"en curso":"arranca "+esc(clean(fShort.format(fromStr(m.start))))}</span></div>
+      <p class="muted" style="margin:0 0 8px;font-size:12.5px">${esc(CHAL_METRICS[m.metric]||"")} · del ${esc(clean(fShort.format(fromStr(m.start))))} al ${esc(clean(fShort.format(fromStr(m.end))))}</p>
+      ${line?`<p style="margin:0 0 8px;font-weight:700;font-size:15px">${line}</p>`:""}
+      ${mem.map((x,i)=>`<div class="ptask" style="${x.score===top&&!allTied?"background:#fdf6df;border-radius:10px;padding:8px;border-top:0":""}"><span style="width:30px;font-size:22px">${face(x,i)}</span><span class="n" style="font-size:15px">${esc(x.name)}${x.id===fbUser.uid?" (vos)":""}</span><span class="num" style="width:auto;font-weight:800;font-size:18px">${x.score}</span></div>`).join("")||`<p class="muted">Todavía no se sumó nadie.</p>`}
+      <div class="new-row" style="margin-top:8px"><span class="muted" style="font-size:13px;align-self:center;flex:1">Código: <b style="color:var(--ink);letter-spacing:.08em">${esc(code)}</b></span><button class="chip" data-chcopy="${esc(code)}">Copiar invitación</button><button class="chip" data-chleave="${esc(code)}">Salir</button></div></div>`; }).join("");
+  el.innerHTML=`<div class="card-head"><h2>Desafíos con amigos 🏆</h2></div>
+    <p class="muted" style="margin:4px 0 8px;font-size:13px">Solo se comparte tu <b>nombre</b> y tu <b>puntaje</b>. Nadie ve tus comidas, gastos ni rutinas.</p>
+    ${list||`<p class="muted" style="margin:0 0 8px">No estás en ningún desafío todavía.</p>`}
+    <div class="mini-btns"><button class="btn ghost" data-chnew="1">+ Crear desafío</button><button class="btn ghost" data-chjoin="1">Unirme con código</button></div>`;
+}
+function openChalCreate(){
+  openSheet("Nuevo desafío",`<label class="field"><span>Nombre</span><input class="input" id="chName" maxlength="40" placeholder="Ej: Diciembre a full"></label>
+    <label class="field"><span>¿Qué se cuenta?</span><select class="input" id="chMetric">${Object.entries(CHAL_METRICS).map(([k,l])=>`<option value="${k}">${l}</option>`).join("")}</select></label>
+    <label class="field"><span>¿Cuánto dura?</span><select class="input" id="chPeriod"><option value="semana">Esta semana (lunes a domingo)</option><option value="mes" selected>Este mes</option><option value="30">30 días desde hoy</option><option value="30m">30 días desde mañana</option></select></label>
+    <p class="muted" style="margin:0 0 12px">Cada uno suma puntos con lo que carga en su página. Después compartís el código con tus amigos.</p>
+    <button class="btn" id="chCreate">Crear</button><p class="err" id="chErr" hidden></p>`);
+  $("chCreate").onclick=async()=>{ const name=$("chName").value.trim()||"Desafío"; const metric=$("chMetric").value; const pv=$("chPeriod").value; const t=todayStr();
+    let start=t,end;
+    if(pv==="semana"){start=mondayOf(t);end=addDays(start,6);} else if(pv==="mes"){start=t.slice(0,7)+"-01";end=t.slice(0,7)+"-"+pad(lastDayOf(t.slice(0,7)));} else if(pv==="30m"){start=addDays(t,1);end=addDays(start,29);} else {end=addDays(t,29);}
+    $("chCreate").disabled=true;
+    try{ const code=newCode(); const r=firebase.database().ref("challenges/"+code);
+      await r.child("meta").set({name:name.slice(0,40),metric,start,end,owner:fbUser.uid,created:Date.now()});
+      await r.child("members/"+fbUser.uid).set({name:myName(),score:0,at:Date.now()});
+      myChal.push(code); persistChal(); subscribeChallenges(); closeSheet(); render(); toast("Desafío creado. Compartí el código: "+code);
+    }catch(e){ $("chErr").hidden=false; $("chErr").textContent="No se pudo crear. Revisá que en Firebase estén las reglas nuevas de desafíos."; $("chCreate").disabled=false; }
+  };
+}
+function openChalJoin(){
+  openSheet("Unirme a un desafío",`<label class="field"><span>Código que te pasaron</span><input class="input" id="chCode" maxlength="6" placeholder="Ej: K7P2QM" style="text-transform:uppercase;letter-spacing:.12em;font-size:18px"></label>
+    <button class="btn" id="chJoin">Unirme</button><p class="err" id="chErr" hidden></p>`);
+  $("chJoin").onclick=async()=>{ const code=$("chCode").value.trim().toUpperCase().replace(/[^A-Z0-9]/g,""); const err=t=>{$("chErr").hidden=false;$("chErr").textContent=t;};
+    if(code.length!==6) return err("El código tiene 6 letras o números.");
+    if(myChal.includes(code)) return err("Ya estás en ese desafío.");
+    try{ const sn=await firebase.database().ref("challenges/"+code+"/meta").once("value"); if(!sn.val()) return err("No encontré ese código. Revisalo.");
+      await firebase.database().ref("challenges/"+code+"/members/"+fbUser.uid).set({name:myName(),score:0,at:Date.now()});
+      myChal.push(code); persistChal(); subscribeChallenges(); closeSheet(); render(); toast("¡Te sumaste al desafío!");
+    }catch(e){ err("No se pudo entrar. Revisá tu conexión."); }
+  };
+}
 function renderProgreso(){
-  renderResumen();
+  renderResumen(); renderChallenges();
   const P=period(); const t=todayStr();
   const elapsed=P.last>=P.start?diffDays(P.start,P.last)+1:0;
   let top="";
@@ -1241,7 +1368,6 @@ function renderProgreso(){
   if(P.challenge&&elapsed===0){ $("stats").innerHTML=`<p class="sub" style="grid-column:1/-1;margin:0">Las estadísticas empiezan a contar el ${clean(fShort.format(fromStr(P.start)))}. Hoy podés ir cargando todo tranquilo: no suma ni resta.</p>`; }
   else $("stats").innerHTML=`${note}
     <div class="stat"><b class="num">${pct}%</b><span>de tus tareas diarias cumplidas</span></div>
-    <div class="stat"><b class="num">${wavg==null?"–":r0(wavg*100)+"%"}</b><span>de tus tareas semanales cumplidas${wk.length?` (${wk.length} ${wk.length===1?"semana":"semanas"})`:""}</span></div>
     <div class="stat"><b class="num">${calDays}/${elapsed}</b><span>días sin pasarte del tope de calorías</span></div>
     ${(()=>{let n=0,v=0;for(let i=0;i<elapsed;i++){const t2=trains[addDays(P.start,i)];if(t2){const x=sessionStats(t2);if(x.sets){n++;v+=x.vol;}}}return workout.days.length||n?`<div class="stat" style="grid-column:1/-1"><b class="num">${n} ${n===1?"entrenamiento":"entrenamientos"}</b><span>registrados en el período${v?` · ${fmt(v)} kg levantados en total`:""}</span></div>`:"";})()}
     <div class="stat"><b class="num">${cur} ${cur===1?"día":"días"}</b><span>racha actual con todo cumplido · mejor: ${best} · días completos: ${full}</span></div>`;
@@ -1260,7 +1386,7 @@ function renderProgreso(){
   const list=[{name:calLabel(),created:"0000",fn:s=>calOk(s)},...(stepsGoal()>0?[{name:`${fmt(stepsGoal())} pasos`,created:STEPS_SINCE,fn:s=>stepsOk(s)}]:[]),...(hasSchedule()?[{name:"Entrenamiento (días fijos)",created:TRAIN_SINCE,on:s=>!!scheduledDay(s),fn:s=>trainDone(s)}]:[]),...T.daily.filter(x=>!x.removed).map(x=>({name:x.name+(x.date||(x.days&&x.days.length&&x.days.length<7)?` (${taskLabel(x)})`:""),created:x.created,on:s=>onWeekday(x,s),fn:s=>((days[s]&&days[s].done)||[]).includes(x.id)}))];
   $("perTask").innerHTML=list.map(x=>{let n=0,d=0;for(let i=0;i<elapsed;i++){const s=addDays(P.start,i);if(s<x.created||(x.on&&!x.on(s)))continue;d++;if(x.fn(s))n++;}
     const p=d?n/d:0;return `<div class="ptask"><span class="n">${esc(x.name)}</span><div class="bar"><i style="width:${p*100}%"></i></div><span class="num">${r0(p*100)}%</span></div>`}).join("")
-    +(T.weekly.filter(x=>!x.removed).length?`<div class="section-label">Semanales</div>`+T.weekly.filter(x=>!x.removed).map(x=>{const vals=[];for(let m=mondayOf(P.start);m<=mondayOf(P.last);m=addDays(m,7)){if(addDays(m,6)<x.created)continue;vals.push(Math.min(1,(((weeks[m]&&weeks[m].counts)||{})[x.id]||0)/x.target));}
+    +(false?`<div class="section-label">Semanales</div>`+T.weekly.filter(x=>!x.removed).map(x=>{const vals=[];for(let m=mondayOf(P.start);m<=mondayOf(P.last);m=addDays(m,7)){if(addDays(m,6)<x.created)continue;vals.push(Math.min(1,(((weeks[m]&&weeks[m].counts)||{})[x.id]||0)/x.target));}
       const p=vals.length?vals.reduce((a,b)=>a+b,0)/vals.length:0;return `<div class="ptask"><span class="n">${esc(x.name)} ×${x.target}</span><div class="bar"><i style="width:${p*100}%"></i></div><span class="num">${r0(p*100)}%</span></div>`}).join(""):"");
 }
 
@@ -1268,9 +1394,11 @@ function renderProgreso(){
 function addDaily(name){
   name=name.trim(); if(!name) return;
   if(newDateMode){ const d=$("newDailyDate").value; if(!d){toast("Elegí la fecha de la tarea");return;}
-    T.daily.push({id:uid(),name:name.slice(0,80),created:d<todayStr()?d:todayStr(),date:d});
-    persistTasks(); render(); if(d!==current) toast(`Agendaste “${name}” para el ${clean(fDay.format(fromStr(d)))}`); return; }
+    const tm=$("newDailyTime").value; const task={id:uid(),name:name.slice(0,80),created:d<todayStr()?d:todayStr(),date:d,...(tm?{time:tm}:{})};
+    T.daily.push(task); newDateMode=false; $("newDailyTime").value=""; persistTasks(); render();
+    toast(`Agendaste “${name}” para el ${clean(fDay.format(fromStr(d)))}${tm?" a las "+tm:""}`,"🔔 Avisarme",()=>openReminder(task.id)); return; }
   T.daily.push({id:uid(),name:name.slice(0,80),created:current<todayStr()?current:todayStr(),...(newDays.length&&newDays.length<7?{days:[...newDays]}:{})});
+  newDays=[];
   persistTasks(); render();
 }
 function addWeekly(name,target){
@@ -1296,25 +1424,56 @@ function bumpWeekly(id,delta){
 }
 function startPlazo(n){ const st=plazoFrom==="manana"?addDays(todayStr(),1):todayStr(); T.challenge={start:st,length:n}; persistTasks(); render(); toast(plazoFrom==="manana"?`Tu plazo de ${n} días arranca mañana`:`¡Arrancó tu plazo de ${n} días!`); }
 
+function icsEscape(t){return String(t).replace(/\\/g,"\\\\").replace(/;/g,"\\;").replace(/,/g,"\\,").replace(/\n/g,"\\n");}
+function reminderLinks(x){
+  const d=x.date.replace(/-/g,""); const title=x.name;
+  let g;
+  if(x.time){ const [h,mi]=x.time.split(":").map(Number); const st=`${d}T${pad(h)}${pad(mi)}00`; const e=new Date(fromStr(x.date)); e.setHours(h,mi+30,0,0);
+    const en=`${e.getFullYear()}${pad(e.getMonth()+1)}${pad(e.getDate())}T${pad(e.getHours())}${pad(e.getMinutes())}00`;
+    g=`https://calendar.google.com/calendar/render?action=TEMPLATE&text=${encodeURIComponent(title)}&dates=${st}/${en}&ctz=America/Argentina/Buenos_Aires&details=${encodeURIComponent("Recordatorio de Mi día")}`;
+  } else { const n=addDays(x.date,1).replace(/-/g,""); g=`https://calendar.google.com/calendar/render?action=TEMPLATE&text=${encodeURIComponent(title)}&dates=${d}/${n}&details=${encodeURIComponent("Recordatorio de Mi día")}`; }
+  const stamp=new Date().toISOString().replace(/[-:]/g,"").replace(/\.\d+/,"");
+  let ev;
+  if(x.time){ const [h,mi]=x.time.split(":").map(Number); const e=new Date(fromStr(x.date)); e.setHours(h,mi+30,0,0);
+    ev=`DTSTART;TZID=America/Argentina/Buenos_Aires:${d}T${pad(h)}${pad(mi)}00\r\nDTEND;TZID=America/Argentina/Buenos_Aires:${e.getFullYear()}${pad(e.getMonth()+1)}${pad(e.getDate())}T${pad(e.getHours())}${pad(e.getMinutes())}00\r\nBEGIN:VALARM\r\nACTION:DISPLAY\r\nDESCRIPTION:${icsEscape(title)}\r\nTRIGGER:-PT0M\r\nEND:VALARM`;
+  } else ev=`DTSTART;VALUE=DATE:${d}\r\nDTEND;VALUE=DATE:${addDays(x.date,1).replace(/-/g,"")}\r\nBEGIN:VALARM\r\nACTION:DISPLAY\r\nDESCRIPTION:${icsEscape(title)}\r\nTRIGGER:PT9H\r\nEND:VALARM`;
+  const ics=`BEGIN:VCALENDAR\r\nVERSION:2.0\r\nPRODID:-//Mi dia//ES\r\nBEGIN:VEVENT\r\nUID:${x.id}@midia\r\nDTSTAMP:${stamp}\r\nSUMMARY:${icsEscape(title)}\r\n${ev}\r\nEND:VEVENT\r\nEND:VCALENDAR\r\n`;
+  return {g,ics};
+}
+function openReminder(id){
+  const x=T.daily.find(t=>t.id===id); if(!x||!x.date) return;
+  const {g,ics}=reminderLinks(x);
+  openSheet("🔔 Avisarme en el celular",`<p style="margin:0 0 6px;font-size:15px"><b>${esc(x.name)}</b></p>
+    <p class="muted" style="margin:0 0 14px">${esc(clean(fDay.format(fromStr(x.date))))}${x.time?" a las "+esc(x.time):" (todo el día: te avisa a las 9)"}${x.time?"":` · <button class="link" data-addtime="${x.id}">ponerle hora</button>`}</p>
+    <p class="muted" style="margin:0 0 12px">Lo agrego al calendario de tu celular y él te avisa, aunque la página esté cerrada.</p>
+    <p style="margin:0 0 8px;font-weight:700">¿Qué calendario usás?</p>
+    <div class="mini-btns" style="margin-top:0">
+      <a class="btn" href="${g}" target="_blank" rel="noopener" style="flex:1;display:flex;align-items:center;justify-content:center;gap:6px;text-decoration:none">📅 Google</a>
+      ${STANDALONE?`<button class="btn" id="remIcs" style="flex:1;display:flex;align-items:center;justify-content:center;gap:6px">🍎 iPhone</button>`:""}
+    </div>
+    <p class="muted" style="margin:12px 0 0;font-size:12.5px">${STANDALONE?"<b>Google:</b> se abre Google Calendar con el recordatorio listo, tocás Guardar. <b>iPhone:</b> se abre el calendario del iPhone, tocás Agregar.":"Se abre Google Calendar con el recordatorio listo: tocá Guardar. (La opción del iPhone está en tu página de GitHub.)"}</p>`);
+  const at=$("sheet").querySelector("[data-addtime]"); if(at) at.onclick=()=>{closeSheet();openTaskEditor(x.id);};
+  if($("remIcs")) $("remIcs").onclick=()=>{ const a=document.createElement("a"); a.href=URL.createObjectURL(new Blob([ics],{type:"text/calendar"})); a.download=(x.name.replace(/[^\w\sáéíóúñÁÉÍÓÚÑ-]/g,"").trim()||"recordatorio")+".ics"; document.body.appendChild(a); a.click(); a.remove(); };
+}
 function openTaskEditor(id){
-  const x=T.daily.find(t=>t.id===id); if(!x) return;
+  const x0=T.daily.find(t=>t.id===id); if(!x0) return; const X=()=>T.daily.find(t=>t.id===id)||x0; const x=x0;
   let sel=x.days&&x.days.length&&x.days.length<7?[...x.days]:[]; let dmode=!!x.date;
   openSheet("Editar tarea",`<label class="field"><span>Nombre</span><input class="input" id="teName" value="${esc(x.name)}" maxlength="80"></label>
     <div class="section-label" style="margin-top:0">¿Qué días?</div><div class="daychips" id="teDays"></div>
-    <div id="teDateWrap" style="margin-top:8px"><input class="input" id="teDate" type="date" value="${x.date||addDays(todayStr(),1)}" style="max-width:200px"></div>
+    <div id="teDateWrap" style="margin-top:8px;display:flex;gap:8px;flex-wrap:wrap"><input class="input" id="teDate" type="date" value="${x.date||addDays(todayStr(),1)}" style="max-width:170px"><input class="input" id="teTime" type="time" value="${x.time||""}" style="max-width:120px" title="Hora (opcional)"></div>
     <p class="muted" style="margin:10px 0 14px">En <b>Hoy</b> solo aparece los días elegidos, y solo esos días cuentan para tu progreso.</p>
     <button class="btn" id="teSave">Guardar</button>`);
   const draw=()=>{$("teDays").innerHTML=`<button class="chip${!sel.length&&!dmode?" on":""}" data-d="all">Todos los días</button>`+WD.map(([n,l,f])=>`<button class="chip${!dmode&&sel.includes(n)?" on":""}" data-d="${n}" title="${f}">${l}</button>`).join("")+`<button class="chip${dmode?" on":""}" data-d="date">📅 Una fecha</button>`;$("teDateWrap").hidden=!dmode;};
   draw();
   $("teDays").onclick=e=>{const c=e.target.closest("[data-d]");if(!c)return;if(c.dataset.d==="date"){dmode=!dmode;draw();return;} dmode=false; if(c.dataset.d==="all")sel=[];else{const n=+c.dataset.d;sel=sel.includes(n)?sel.filter(v=>v!==n):[...sel,n];if(sel.length===7)sel=[];}draw();};
-  $("teSave").onclick=()=>{const nm=$("teName").value.trim();if(nm)x.name=nm.slice(0,80);if(dmode){const d=$("teDate").value;if(!d){toast("Elegí la fecha");return;}x.date=d;delete x.days;if(d<x.created)x.created=d;}else{delete x.date;if(sel.length)x.days=sel;else delete x.days;}persistTasks();closeSheet();render();toast("Tarea actualizada");};
+  $("teSave").onclick=()=>{const x=X();const nm=$("teName").value.trim();if(nm)x.name=nm.slice(0,80);if(dmode){const d=$("teDate").value;if(!d){toast("Elegí la fecha");return;}x.date=d;const tm=$("teTime").value;if(tm)x.time=tm;else delete x.time;delete x.days;if(d<x.created)x.created=d;}else{delete x.date;delete x.time;if(sel.length)x.days=sel;else delete x.days;}persistTasks();closeSheet();render();toast("Tarea actualizada");};
 }
 
 /* ---------- Finanzas ---------- */
 function money(v){return fARS.format(Math.round(+v||0));}
 function parseARS(v){let t=String(v||"").replace(/[$\s]/g,"");if(/,\d{1,2}$/.test(t))t=t.replace(/\./g,"").replace(",",".");else t=t.replace(/[.,]/g,"");return Math.max(0,+t||0);}
 function catOf(k){return FIN_CATS.find(c=>c[0]===k)||FIN_CATS[FIN_CATS.length-1];}
-function getFinMonth(m){if(!finMonths[m])finMonths[m]={items:[]};return finMonths[m];}
+function getFinMonth(m){if(!finMonths[m])finMonths[m]={items:[],inc:[]};if(!finMonths[m].inc)finMonths[m].inc=[];return finMonths[m];}
 function monthAdd(m,n){const [y,mo]=m.split("-").map(Number);const d=new Date(y,mo-1+n,1);return d.getFullYear()+"-"+pad(d.getMonth()+1);}
 function monthLabel(m){const [y,mo]=m.split("-").map(Number);const l=MONTHS[mo-1];return l.charAt(0).toUpperCase()+l.slice(1)+" "+y;}
 function lastDayOf(m){const [y,mo]=m.split("-").map(Number);return new Date(y,mo,0).getDate();}
@@ -1329,14 +1488,23 @@ function subCharges(a,b){
   return out.sort((x,y)=>x.date<y.date?-1:1);
 }
 function itemsIn(a,b){const out=[];for(let m=a.slice(0,7);m<=b.slice(0,7);m=monthAdd(m,1))for(const it of ((finMonths[m]||{}).items||[]))if(it.date>=a&&it.date<=b)out.push(it);return out;}
+function incCharges(a,b){
+  const out=[];
+  for(const x of (fin.incFix||[])){ if(x.paused) continue;
+    for(let m=a.slice(0,7);m<=b.slice(0,7);m=monthAdd(m,1)){ const d=m+"-"+pad(Math.min(+x.day||1,lastDayOf(m))); if(d>=a&&d<=b&&d>=(x.since||"0000")) out.push({date:d,src:x}); } }
+  return out.sort((x,y)=>x.date<y.date?-1:1);
+}
+function incomesIn(a,b){const out=[];for(let m=a.slice(0,7);m<=b.slice(0,7);m=monthAdd(m,1))for(const it of ((finMonths[m]||{}).inc||[]))if(it.date>=a&&it.date<=b)out.push(it);return out;}
 function finTotals(a,b){
   const its=itemsIn(a,b), ch=subCharges(a,b); const byCat={};
   let g=0,sv=0; for(const it of its){g+=+it.amount||0;byCat[it.cat]=(byCat[it.cat]||0)+(+it.amount||0);}
   for(const c of ch){sv+=+c.sub.amount||0;byCat.suscripciones=(byCat.suscripciones||0)+(+c.sub.amount||0);}
-  return {total:g+sv,gastos:g,subs:sv,byCat,items:its,charges:ch};
+  const incs=incomesIn(a,b), ich=incCharges(a,b); let inc=0; for(const x of incs) inc+=+x.amount||0; for(const x of ich) inc+=+x.src.amount||0;
+  return {total:g+sv,gastos:g,subs:sv,byCat,items:its,charges:ch,inc,incs,ich,bal:inc-(g+sv)};
 }
-function persistFin(){ if(remote()) queueWrite("finance",{type:"finance",subs:clone(fin.subs),budget:+fin.budget||0}); else saveLocal(); }
-function persistFinMonth(m){ if(remote()) queueWrite("fin-"+m,{type:"finmonth",month:m,items:clone(getFinMonth(m).items)}); else saveLocal(); }
+function incCatOf(k){return INC_CATS.find(c=>c[0]===k)||INC_CATS[INC_CATS.length-1];}
+function persistFin(){ if(remote()) queueWrite("finance",{type:"finance",subs:clone(fin.subs),budget:+fin.budget||0,incFix:clone(fin.incFix||[]),goals:clone(fin.goals||[])}); else saveLocal(); }
+function persistFinMonth(m){ if(remote()) queueWrite("fin-"+m,{type:"finmonth",month:m,items:clone(getFinMonth(m).items),inc:clone(getFinMonth(m).inc||[])}); else saveLocal(); }
 function renderFinanzas(){
   const m=finMonth, a=m+"-01", b=m+"-"+pad(lastDayOf(m)); const t=todayStr();
   const c=finTotals(a,b), pm=monthAdd(m,-1), p=finTotals(pm+"-01",pm+"-"+pad(lastDayOf(pm)));
@@ -1344,6 +1512,11 @@ function renderFinanzas(){
   const cats=Object.entries(c.byCat).filter(([,v])=>v>0).sort((x,y)=>y[1]-x[1]);
   const d=c.total-p.total;
   $("finSummary").innerHTML=`<div class="sumhead" style="margin-top:0"><button class="arrow" data-finm="-1" aria-label="Mes anterior">‹</button><span class="lbl">${m===t.slice(0,7)?"Este mes · ":""}${monthLabel(m)}</span><button class="arrow" data-finm="1" aria-label="Mes siguiente" ${m>=t.slice(0,7)?"disabled":""}>›</button></div>
+    ${c.inc?`<div class="stats" style="margin:10px 0 6px;grid-template-columns:1fr 1fr 1fr;gap:8px">
+      <div class="stat" style="box-shadow:none;background:#eef6f0;padding:10px"><span style="margin:0 0 2px">Ingresos</span><b class="num" style="font-size:18px">${money(c.inc)}</b></div>
+      <div class="stat" style="box-shadow:none;background:#fbeee7;padding:10px"><span style="margin:0 0 2px">Gastos</span><b class="num" style="font-size:18px">${money(c.total)}</b></div>
+      <div class="stat" style="box-shadow:none;background:#f8f6f0;padding:10px"><span style="margin:0 0 2px">${c.bal>=0?"Te quedó":"Faltó"}</span><b class="num" style="font-size:18px;color:${c.bal>=0?"var(--green-ink)":"var(--warn)"}">${money(Math.abs(c.bal))}</b></div></div>
+      <p class="muted num" style="margin:0 0 6px;font-size:13px">${c.bal>=0?`Ahorraste el <b style="color:var(--ink)">${r0(c.bal/c.inc*100)}%</b> de lo que entró este mes.`:"Gastaste más de lo que entró este mes."}</p>`:""}
     <div style="margin:10px 0 4px"><div class="muted" style="font-size:13px">Gastaste</div><div class="bigmoney num">${money(c.total)}</div>
     <div class="muted num" style="font-size:13px">${money(c.gastos)} en gastos + ${money(c.subs)} en suscripciones${p.total?` · <span class="delta ${d>0?"down":"up"}" style="margin:0">${d>0?"▲":"▼"} ${money(Math.abs(d))} vs ${MONTHS[+pm.slice(5,7)-1]}</span>`:""}</div></div>
     ${budget?`<div class="macro" style="margin-top:12px"><div class="macro-head"><span>Presupuesto del mes</span><span class="num">${money(c.total)} / ${money(budget)}</span></div><div class="bar"><i style="width:${Math.min(100,c.total/budget*100)}%;background:${c.total>budget?"var(--warn)":"var(--green)"}"></i></div><p class="muted num" style="margin:6px 0 0;font-size:13px">${c.total<=budget?`Te quedan ${money(budget-c.total)}`:`Te pasaste ${money(c.total-budget)}`}</p></div>`:""}
@@ -1351,11 +1524,12 @@ function renderFinanzas(){
     <details style="margin-top:12px"><summary style="cursor:pointer;font-weight:600;font-size:14px;color:var(--green-ink)">${budget?"Cambiar presupuesto mensual":"Poner un presupuesto mensual"}</summary>
       <div class="new-row"><input class="input num" id="finBudget" inputmode="decimal" placeholder="Ej: 400.000" value="${budget?r0(budget).toLocaleString("es-AR"):""}"><button class="btn" id="finBudgetSave" type="button">Guardar</button></div></details>`;
   const defDate=m===t.slice(0,7)?t:b;
-  $("finAdd").innerHTML=`<h2>Anotar gasto</h2>
-    <div class="new-row" style="margin-top:12px"><input class="input num" id="fAmt" inputmode="decimal" placeholder="Monto: ej. 18.500" style="font-size:17px"><input class="input" id="fDate" type="date" value="${defDate}" max="${t}" style="flex:0 0 150px"></div>
-    <div class="chips" id="fCats" style="margin-top:10px">${FIN_CATS.filter(x=>x[0]!=="suscripciones").map(([k,l,e])=>`<button class="chip${finCat===k?" on":""}" data-fcat="${k}">${e} ${esc(l)}</button>`).join("")}</div>
-    <input class="input" id="fNote" placeholder="Detalle (opcional): ej. cena con amigos" maxlength="80">
-    <button class="btn" id="fAddBtn" style="margin-top:10px">Agregar gasto</button><p class="err" id="fErr" hidden></p>`;
+  const isInc=finKind==="ingreso";
+  $("finAdd").innerHTML=`<div class="segment" id="fKind" style="margin-bottom:12px"><button data-fk="gasto" class="${!isInc?"on":""}">− Gasto</button><button data-fk="ingreso" class="${isInc?"on":""}">+ Ingreso</button></div>
+    <div class="new-row" style="margin-top:0"><input class="input num" id="fAmt" inputmode="decimal" placeholder="${isInc?"Monto: ej. 650.000":"Monto: ej. 18.500"}" style="font-size:17px"><input class="input" id="fDate" type="date" value="${defDate}" max="${t}" style="flex:0 0 150px"></div>
+    <div class="chips" id="fCats" style="margin-top:10px">${isInc?INC_CATS.map(([k,l,e])=>`<button class="chip${incCat===k?" on":""}" data-icat="${k}">${e} ${esc(l)}</button>`).join(""):FIN_CATS.filter(x=>x[0]!=="suscripciones").map(([k,l,e])=>`<button class="chip${finCat===k?" on":""}" data-fcat="${k}">${e} ${esc(l)}</button>`).join("")}</div>
+    <input class="input" id="fNote" placeholder="${isInc?"Detalle (opcional): ej. sueldo de noviembre":"Detalle (opcional): ej. cena con amigos"}" maxlength="80">
+    <button class="btn" id="fAddBtn" style="margin-top:10px">${isInc?"Agregar ingreso":"Agregar gasto"}</button><p class="err" id="fErr" hidden></p>`;
   // suscripciones
   const act=fin.subs.filter(x=>!x.paused); const monthly=act.reduce((acc,x)=>acc+(x.cycle==="anual"?(+x.amount||0)/12:(+x.amount||0)),0);
   const nextOf=sb=>{const ch=subCharges(t,addDays(t,400)).find(cc=>cc.sub===sb);return ch?ch.date:null;};
@@ -1369,22 +1543,61 @@ function renderFinanzas(){
       <label class="field" style="margin:0;flex:1" id="sbMonthWrap" hidden><span>Mes</span><select class="input" id="sbMonth">${MONTHS.map((x,i)=>`<option value="${i+1}"${i+1===+t.slice(5,7)?" selected":""}>${x}</option>`).join("")}</select></label></div>
       <button class="btn" id="sbAdd" style="margin-top:10px">Guardar suscripción</button><p class="err" id="sbErr" hidden></p></div></details>`;
   // lista del mes
-  const its=[...c.items].sort((x,y)=>x.date<y.date?1:x.date>y.date?-1:0);
+  const its=[...c.items.map(x=>({...x,_k:"g"})),...c.incs.map(x=>({...x,_k:"i"}))].sort((x,y)=>x.date<y.date?1:x.date>y.date?-1:0);
   let html="",lastD="";
   for(const it of its){ if(it.date!==lastD){lastD=it.date;html+=`<div class="dayhdr">${esc(clean(fDay.format(fromStr(it.date))))}</div>`;}
+    if(it._k==="i"){const ct=incCatOf(it.cat); html+=`<div class="fitem"><span class="em">${ct[2]}</span><div class="info"><div class="name">${esc(it.note||ct[1])}</div><div class="meta">Ingreso · ${esc(ct[1])}</div></div><span class="v num" style="color:var(--green-ink)">+${money(it.amount)}</span><button class="del" data-idel="${it.id}" aria-label="Eliminar ingreso">×</button></div>`; continue;}
     const ct=catOf(it.cat); html+=`<div class="fitem"><span class="em">${ct[2]}</span><div class="info"><div class="name">${esc(it.note||ct[1])}</div><div class="meta">${esc(ct[1])}</div></div><span class="v num">${money(it.amount)}</span><button class="del" data-fdel="${it.id}" aria-label="Eliminar gasto">×</button></div>`; }
-  $("finList").innerHTML=`<div class="card-head"><h2>Gastos de ${MONTHS[+m.slice(5,7)-1]}</h2><span class="num">${its.length?its.length+(its.length===1?" gasto":" gastos"):""}</span></div>${html||`<p class="muted">Sin gastos anotados.</p>`}`;
+  const ng=c.items.length, ni=c.incs.length;
+  $("finList").innerHTML=`<div class="card-head"><h2>Movimientos de ${MONTHS[+m.slice(5,7)-1]}</h2><span class="num">${ng?ng+(ng===1?" gasto":" gastos"):""}${ng&&ni?" · ":""}${ni?ni+(ni===1?" ingreso":" ingresos"):""}</span></div>${html||`<p class="muted">Sin movimientos anotados.</p>`}`;
+  // ingresos fijos
+  const fx=fin.incFix||[];
+  $("finInc").innerHTML=`<div class="card-head"><h2>Ingresos fijos</h2><span class="num">${fx.filter(x=>!x.paused).length?money(fx.filter(x=>!x.paused).reduce((a,x)=>a+(+x.amount||0),0))+"/mes":""}</span></div>
+    ${fx.length?fx.map(x=>`<div class="fitem${x.paused?" paused":""}"><span class="em">💼</span><div class="info"><div class="name">${esc(x.name)}</div><div class="meta num">${money(x.amount)} por mes · día ${x.day}${x.paused?" · pausado":""}</div></div><button class="chip" data-ifpause="${x.id}">${x.paused?"Reanudar":"Pausar"}</button><button class="del" data-ifrm="${x.id}" aria-label="Eliminar">×</button></div>`).join("")
+      :`<p class="muted">Si cobrás un sueldo fijo, cargalo acá y se suma solo todos los meses. Lo variable (changas, extras) anotalo arriba como "+ Ingreso".</p>`}
+    <details style="margin-top:10px" ${fx.length?"":"open"}><summary style="cursor:pointer;font-weight:600;font-size:14px;color:var(--green-ink)">+ Agregar ingreso fijo</summary>
+      <div class="new-row"><input class="input" id="ifName" placeholder="Ej: Sueldo" maxlength="40"><input class="input num" id="ifAmt" inputmode="decimal" placeholder="Monto" style="flex:0 0 120px"></div>
+      <div class="new-row"><label class="field" style="margin:0;flex:1"><span>Día de cobro</span><input class="input num" id="ifDay" type="number" min="1" max="31" value="1"></label></div>
+      <button class="btn" id="ifAdd" style="margin-top:10px">Guardar ingreso fijo</button><p class="err" id="ifErr" hidden></p></details>`;
+  // metas de ahorro
+  const gl=fin.goals||[];
+  $("finGoals").innerHTML=`<div class="card-head"><h2>Metas de ahorro</h2></div>
+    ${gl.length?gl.map(g=>{const pc=g.target?Math.min(1,(+g.saved||0)/g.target):0;const left=Math.max(0,(+g.target||0)-(+g.saved||0));
+      let per=""; if(g.date&&left>0){const ms=Math.max(1,(new Date(g.date).getFullYear()-new Date().getFullYear())*12+(new Date(g.date).getMonth()-new Date().getMonth()));per=` · ${money(left/ms)} por mes hasta ${esc(clean(fShort.format(fromStr(g.date))))}`;}
+      return `<div style="padding:12px 0;border-top:1px solid var(--line)"><div class="macro-head"><span>🎯 ${esc(g.name)}${pc>=1?" ✅":""}</span><span class="num">${money(g.saved||0)} / ${money(g.target)}</span></div>
+        <div class="bar" style="height:10px"><i style="width:${pc*100}%"></i></div>
+        <p class="muted num" style="margin:6px 0 8px;font-size:12.5px">${pc>=1?"¡Meta cumplida!":`Te faltan ${money(left)}${per}`}</p>
+        <div class="new-row" style="margin:0"><input class="input num" data-gamt="${g.id}" inputmode="decimal" placeholder="Monto"><button class="btn" data-gadd="${g.id}" style="padding:0 12px">+ Aportar</button><button class="btn ghost" data-gsub="${g.id}" style="padding:0 12px">− Sacar</button><button class="del" data-grm="${g.id}" aria-label="Eliminar meta">×</button></div></div>`;}).join("")
+      :`<p class="muted">Ponete un objetivo (un viaje, un celular, un fondo de emergencia) y andá sumando lo que separás. Te muestro cuánto te falta y cuánto tendrías que ahorrar por mes.</p>`}
+    <details style="margin-top:10px" ${gl.length?"":"open"}><summary style="cursor:pointer;font-weight:600;font-size:14px;color:var(--green-ink)">+ Nueva meta</summary>
+      <input class="input" id="gName" placeholder="Nombre: ej. Viaje" maxlength="40" style="margin-top:10px">
+      <div class="new-row"><input class="input num" id="gTarget" inputmode="decimal" placeholder="Cuánto querés juntar"><input class="input" id="gDate" type="date" style="flex:0 0 150px" title="Fecha (opcional)"></div>
+      <button class="btn" id="gAdd" style="margin-top:10px">Crear meta</button><p class="err" id="gErr" hidden></p></details>`;
   bindFinanzas();
 }
 function bindFinanzas(){
   $("finBudgetSave").onclick=()=>{fin.budget=parseARS($("finBudget").value);persistFin();render();toast(fin.budget?"Presupuesto guardado":"Sacaste el presupuesto");};
-  $("fCats").onclick=e=>{const c=e.target.closest("[data-fcat]");if(!c)return;finCat=c.dataset.fcat;$("fCats").querySelectorAll(".chip").forEach(x=>x.classList.toggle("on",x===c));};
+  $("fKind").onclick=e=>{const c=e.target.closest("[data-fk]");if(!c)return;finKind=c.dataset.fk;renderFinanzas();};
+  $("fCats").onclick=e=>{const c=e.target.closest("[data-fcat],[data-icat]");if(!c)return;if(c.dataset.icat)incCat=c.dataset.icat;else finCat=c.dataset.fcat;$("fCats").querySelectorAll(".chip").forEach(x=>x.classList.toggle("on",x===c));};
   $("fAddBtn").onclick=()=>{const amt=parseARS($("fAmt").value);const date=$("fDate").value||todayStr();
     if(!(amt>0)){$("fErr").hidden=false;$("fErr").textContent="Poné el monto.";return;}
+    if(finKind==="ingreso"){ const m=date.slice(0,7); const it={id:uid(),date,amount:amt,cat:incCat,note:$("fNote").value.trim().slice(0,80)};
+      getFinMonth(m).inc.push(it); persistFinMonth(m); finMonth=m; render();
+      toast(`Anotaste un ingreso de ${money(amt)}`,"Deshacer",()=>{const f=getFinMonth(m);f.inc=f.inc.filter(x=>x.id!==it.id);persistFinMonth(m);render();}); return; }
     const m=date.slice(0,7);const it={id:uid(),date,amount:amt,cat:finCat,note:$("fNote").value.trim().slice(0,80)};
     getFinMonth(m).items.push(it);persistFinMonth(m);finMonth=m;render();
     toast(`Anotaste ${money(amt)}`,"Deshacer",()=>{const f=getFinMonth(m);f.items=f.items.filter(x=>x.id!==it.id);persistFinMonth(m);render();});};
   $("fAmt").onkeydown=e=>{if(e.key==="Enter")$("fAddBtn").click();};
+  $("ifAdd").onclick=()=>{const name=$("ifName").value.trim(),amt=parseARS($("ifAmt").value),day=Math.min(31,Math.max(1,+$("ifDay").value||1));
+    if(!name||!(amt>0)){$("ifErr").hidden=false;$("ifErr").textContent="Poné nombre y monto.";return;}
+    fin.incFix.push({id:uid(),name:name.slice(0,40),amount:amt,day,since:finMonth+"-01"}); persistFin(); render(); toast(`Guardaste ${name}`);};
+  $("gAdd").onclick=()=>{const name=$("gName").value.trim(),tg=parseARS($("gTarget").value);
+    if(!name||!(tg>0)){$("gErr").hidden=false;$("gErr").textContent="Poné nombre y cuánto querés juntar.";return;}
+    fin.goals.push({id:uid(),name:name.slice(0,40),target:tg,saved:0,...($("gDate").value?{date:$("gDate").value}:{})}); persistFin(); render(); toast(`Creaste la meta ${name}`);};
+  $("finGoals").querySelectorAll("[data-gadd],[data-gsub]").forEach(b=>b.onclick=()=>{const id=b.dataset.gadd||b.dataset.gsub;const g=fin.goals.find(x=>x.id===id);if(!g)return;
+    const v=parseARS($("finGoals").querySelector(`[data-gamt="${id}"]`).value); if(!(v>0)){toast("Poné un monto");return;}
+    const prev=+g.saved||0; g.saved=Math.max(0,prev+(b.dataset.gadd?v:-v)); persistFin(); render();
+    toast(b.dataset.gadd?`Sumaste ${money(v)} a ${g.name}`:`Sacaste ${money(v)} de ${g.name}`,"Deshacer",()=>{g.saved=prev;persistFin();render();});});
   $("sbCycle").onchange=()=>{$("sbMonthWrap").hidden=$("sbCycle").value!=="anual";};
   $("sbAdd").onclick=()=>{const name=$("sbName").value.trim(),amt=parseARS($("sbAmt").value),day=Math.min(31,Math.max(1,+$("sbDay").value||1));
     if(!name||!(amt>0)){$("sbErr").hidden=false;$("sbErr").textContent="Poné nombre y monto.";return;}
@@ -1689,9 +1902,14 @@ function renderTrainSession(){
     return;
   }
   if(sessEdit&&sessEdit.date!==current) sessEdit=null;
+  if(sessClosed.has(current)&&!sessEdit){ const st0=sessionStats(s);
+    el.innerHTML=`<section class="card"><div class="card-head"><h2>${esc(s.dayName)}</h2><span class="num">✅ registrado</span></div>
+      <p class="muted" style="margin:0">${st0.sets} ${st0.sets===1?"serie":"series"}${st0.vol?` · ${fmt(st0.vol)} kg de volumen`:""}${st0.prs?` · ${st0.prs} ${st0.prs===1?"récord":"récords"} 🏆`:""}</p>
+      <button class="add-btn" data-sessopen="1" style="margin-top:10px">Ver o seguir cargando</button></section>`;
+    return; }
   const ed=!!sessEdit;
   const st=sessionStats(s);
-  el.innerHTML=`<section class="card"${ed?' style="outline:2px solid var(--carb);outline-offset:-2px"':""}>${ed?`<div class="hint up" style="margin:0 0 10px">✏️ <b>Modo edición:</b> sumá o quitá series y ejercicios. Cuando termines tocá <b>Aceptar</b>, o <b>Cancelar</b> para dejar todo como estaba.</div>`:""}<div class="card-head"><h2>${esc(s.dayName)}</h2><span class="num" id="sessSum">${st.sets} ${st.sets===1?"serie":"series"}${st.vol?` · ${fmt(st.vol)} kg`:""}</span></div>
+  el.innerHTML=`<section class="card"${ed?' style="outline:2px solid var(--carb);outline-offset:-2px"':""}>${ed?`<div class="hint up" style="margin:0 0 10px">✏️ <b>Modo edición:</b> sumá o quitá series y ejercicios. Cuando termines tocá <b>Aceptar</b>, o <b>Cancelar</b> para dejar todo como estaba.</div>`:""}<div class="card-head"><h2>${esc(s.dayName)}</h2><span style="display:flex;align-items:center;gap:6px"><span class="num" id="sessSum">${st.sets} ${st.sets===1?"serie":"series"}${st.vol?` · ${fmt(st.vol)} kg`:""}</span>${ed?"":`<button class="del" data-sessclose="1" aria-label="Cerrar entrenamiento" title="Cerrar">×</button>`}</span></div>
     ${s.ex.map((ex,i)=>{
       const last=lastFor(ex.key,current); const pb=prevBest(ex.key,current); const b=bestSet(ex);
       let hint="";
@@ -1700,7 +1918,7 @@ function renderTrainSession(){
         hint=`<div class="hint${allTop?" up":""}">Última vez (${esc(clean(fShort.format(fromStr(last.date))))}): ${lv.map(fmtSet).join(" · ")}<br>${allTop?`💪 Llegaste a ${ex.rmax} repes en todas: subí un poco el peso.`:`Mismo peso y buscá sumar 1 o 2 repes${ex.rmax?` (hasta ${ex.rmax})`:""}.`}</div>`;
       } else hint=`<div class="hint">Primera vez que lo registrás: elegí un peso con el que llegues al rango${ex.target?` (${esc(ex.target)})`:""} con buena técnica.</div>`;
       const ph=j=>{const ls=last?validSets(last.ex):[];const x=ls[j]||ls[ls.length-1];return x?{w:+x.w?r1(x.w):"",r:x.r}:{w:"",r:ex.rmin?`${ex.rmin}${ex.rmax&&ex.rmax!==ex.rmin?"–"+ex.rmax:""}`:""};};
-      return `<div class="exblock"><div class="exhead"><div class="info"><b>${esc(ex.name)}</b>${b&&pb&&b.w>pb?`<span class="pr">🏆 Récord</span>`:""}<div class="tmeta" style="font-size:12.5px;color:var(--muted)">${esc(ex.target||"")}</div></div>${ed?`<button class="del" data-rmex="${i}" aria-label="Quitar ejercicio">×</button>`:""}</div>
+      return `<div class="exblock"><div class="exhead"><div class="info"><b>${esc(ex.name)}</b>${b&&pb&&b.w>pb?`<span class="pr">🏆 Récord</span>`:""}<div class="tmeta" style="font-size:12.5px;color:var(--muted)">${esc(ex.target||"")}</div></div>${ed?`<button class="mv" data-exmv="${i}:-1" ${i?"":"disabled"} aria-label="Subir">↑</button><button class="mv" data-exmv="${i}:1" ${i<s.ex.length-1?"":"disabled"} aria-label="Bajar">↓</button><button class="del" data-rmex="${i}" aria-label="Quitar ejercicio">×</button>`:""}</div>
         ${hint}
         <div class="setgrid"><span class="h" style="text-align:center">Serie</span><span class="h">Peso (kg)</span><span class="h">Repes</span><span></span>
         ${ex.sets.map((x,j)=>{const p=ph(j);return `<span class="n">${j+1}</span><input class="input num" data-sw="${i}:${j}" type="number" inputmode="decimal" step="any" min="0" value="${x.w===""||x.w==null?"":x.w}" placeholder="${p.w}"><input class="input num" data-sr="${i}:${j}" data-was="${+x.r>0?x.r:""}" type="number" inputmode="numeric" min="0" value="${x.r===""||x.r==null?"":x.r}" placeholder="${p.r}"><span class="ok${+x.r>0?" on":""}" id="ok-${i}-${j}">${TICK}</span>`}).join("")}
@@ -1718,7 +1936,7 @@ function renderTrainSession(){
       <button class="chip" data-reststart="1">⏱ Iniciar</button></div>
       <div class="chips" style="margin:6px 0 0">${[[90,"1:30"],[120,"2:00"],[150,"2:30"],[180,"3:00"]].map(([v,l])=>`<button class="chip${rs===v?" on":""}" data-rest="${v}">${l}</button>`).join("")}</div>
       <p class="muted" style="margin:4px 0 0;font-size:12.5px">Máximo 3 minutos.</p>`;})()}
-    <div class="mini-btns"><button class="btn ghost" data-sessedit="1">✏️ Editar series</button><button class="btn" data-goto="hoy">Listo</button></div>`}
+    <div class="mini-btns"><button class="btn ghost" data-sessedit="1">✏️ Editar series</button><button class="btn" data-sessclose="1">Cerrar</button></div>`}
   </section>`;
 }
 function updateSessSum(){
@@ -1728,12 +1946,12 @@ function updateSessSum(){
 }
 function startSession(dayId){
   const d=workout.days.find(x=>x.id===dayId); if(!d) return;
-  trains[current]={date:current,dayId:d.id,dayName:d.name,ex:d.exercises.map(e=>({key:exKey(e.name),name:e.name,target:tgt(e),rmin:e.rmin,rmax:e.rmax,sets:Array.from({length:e.sets||3},()=>({w:"",r:""}))}))};
+  trains[current]={date:current,dayId:d.id,dayName:d.name,ex:d.exercises.map(e=>({key:e.key||exKey(e.name),name:e.name,target:tgt(e),rmin:e.rmin,rmax:e.rmax,sets:Array.from({length:e.sets||3},()=>({w:"",r:""}))}))};
   persistTrain(current); render();
 }
 function allExercises(){
   const m=new Map();
-  for(const d of workout.days) for(const e of d.exercises) m.set(exKey(e.name),e.name);
+  for(const d of workout.days) for(const e of d.exercises) m.set(e.key||exKey(e.name),e.name);
   for(const d of sessionDates()) for(const e of trains[d].ex) if(!m.has(e.key)) m.set(e.key,e.name);
   return [...m.entries()];
 }
@@ -1801,14 +2019,21 @@ function openSchedule(){
   $("schedClear").onclick=()=>{ for(const d of workout.days) delete d.wdays; trainPick=null; persistWorkout(); closeSheet(); render(); toast("Volviste a la rotación"); };
 }
 function openDayEditor(id){
-  const d=workout.days.find(x=>x.id===id); if(!d) return;
+  const d0=workout.days.find(x=>x.id===id); if(!d0) return;
+  const D=()=>workout.days.find(x=>x.id===id)||d0;
   openSheet("Editar día",`<div id="dayEd"></div>`);
+  let editIdx=-1;
   const draw=()=>{
-    const have=new Set(d.exercises.map(e=>exKey(e.name)));
-    $("dayEd").innerHTML=`<label class="field"><span>Nombre del día</span><input class="input" id="deName" value="${esc(d.name)}" maxlength="40"></label>
+    const have=new Set(D().exercises.map(e=>exKey(e.name)));
+    $("dayEd").innerHTML=`<label class="field"><span>Nombre del día</span><input class="input" id="deName" value="${esc(D().name)}" maxlength="40"></label>
       <div class="section-label" style="margin-top:0">Ejercicios</div>
-      ${d.exercises.length?d.exercises.map((e,i)=>`<div class="exrow"><div class="info">${esc(e.name)}<div class="meta">${tgt(e)} repes</div></div>
-        <button class="mv" data-mv="${i}:-1" ${i?"":"disabled"} aria-label="Subir">↑</button><button class="mv" data-mv="${i}:1" ${i<d.exercises.length-1?"":"disabled"} aria-label="Bajar">↓</button><button class="del" data-rme="${i}" aria-label="Quitar">×</button></div>`).join("")
+      ${D().exercises.length?`<p class="muted" style="margin:0 0 4px;font-size:12.5px">Usá ↑ ↓ para ordenarlos y ✎ para cambiar nombre, series o repes.</p>`+D().exercises.map((e,i)=>editIdx===i?`<div class="exrow" style="flex-wrap:wrap;gap:8px;background:#fdf8ec;border-radius:12px;padding:10px;margin:4px 0">
+          <label class="field" style="flex-basis:100%;margin:0"><span>Nombre</span><input class="input" id="eeName" value="${esc(e.name)}" maxlength="60"></label>
+          <label class="field" style="flex:1;margin:0"><span>Series</span><select class="input" id="eeSets">${[1,2,3,4,5,6].map(n=>`<option${n===(+e.sets||3)?" selected":""}>${n}</option>`).join("")}</select></label>
+          <label class="field" style="flex:1;margin:0"><span>Repes (rango)</span><input class="input" id="eeReps" value="${e.rmin===e.rmax?e.rmin:e.rmin+"-"+e.rmax}"></label>
+          <div class="mini-btns" style="flex-basis:100%;margin-top:4px"><button class="btn ghost" id="eeCancel">Cancelar</button><button class="btn" id="eeSave">Guardar</button></div></div>`
+        :`<div class="exrow"><div class="info">${esc(e.name)}<div class="meta">${tgt(e)} repes</div></div>
+        <button class="mv" data-mv="${i}:-1" ${i?"":"disabled"} aria-label="Subir">↑</button><button class="mv" data-mv="${i}:1" ${i<D().exercises.length-1?"":"disabled"} aria-label="Bajar">↓</button><button class="mv" data-ede="${i}" aria-label="Editar ejercicio">✎</button><button class="del" data-rme="${i}" aria-label="Quitar">×</button></div>`).join("")
         :`<p class="muted">Todavía no hay ejercicios en este día.</p>`}
       <div class="section-label">Sumar ejercicio</div>
       <input class="input" id="deEx" placeholder="Nombre: ej. Press banca" maxlength="60" style="margin-bottom:8px">
@@ -1819,18 +2044,26 @@ function openDayEditor(id){
       <button class="btn" id="deAdd">Sumar ejercicio</button>
       <div class="chips" style="margin-top:12px">${EX_SUGG.filter(n=>!have.has(exKey(n))).map(n=>`<button class="chip" data-sug="${esc(n)}">+ ${esc(n)}</button>`).join("")}</div>
       <button class="btn ghost" id="deDel" style="color:var(--warn);margin-top:8px">Eliminar este día</button>`;
-    $("deName").onchange=()=>{const v=$("deName").value.trim();if(v){d.name=v.slice(0,40);persistWorkout();render();}};
+    $("deName").onchange=()=>{const v=$("deName").value.trim();if(v){D().name=v.slice(0,40);persistWorkout();render();}};
     const add=name=>{name=(name||"").trim();if(!name)return;
       const m=$("deReps").value.match(/(\d+)\s*(?:[-–a]\s*(\d+))?/);const rmin=m?+m[1]:8,rmax=m&&m[2]?+m[2]:rmin;
-      d.exercises.push({id:uid(),name:name.slice(0,60),sets:+$("deSets").value||3,rmin:Math.min(rmin,rmax),rmax:Math.max(rmin,rmax)});
+      D().exercises.push({id:uid(),name:name.slice(0,60),sets:+$("deSets").value||3,rmin:Math.min(rmin,rmax),rmax:Math.max(rmin,rmax)});
       persistWorkout();render();draw();};
     $("deAdd").onclick=()=>add($("deEx").value);
     $("deEx").onkeydown=e=>{if(e.key==="Enter"){e.preventDefault();add($("deEx").value);}};
     $("dayEd").querySelectorAll("[data-sug]").forEach(b=>b.onclick=()=>add(b.dataset.sug));
-    $("dayEd").querySelectorAll("[data-rme]").forEach(b=>b.onclick=()=>{d.exercises.splice(+b.dataset.rme,1);persistWorkout();render();draw();});
-    $("dayEd").querySelectorAll("[data-mv]").forEach(b=>b.onclick=()=>{const [i,dir]=b.dataset.mv.split(":").map(Number);const j=i+dir;[d.exercises[i],d.exercises[j]]=[d.exercises[j],d.exercises[i]];persistWorkout();render();draw();});
-    $("deDel").onclick=()=>{const i=workout.days.indexOf(d);workout.days.splice(i,1);persistWorkout();closeSheet();render();
-      toast(`Eliminaste “${d.name}”`,"Deshacer",()=>{workout.days.splice(i,0,d);persistWorkout();render();});};
+    $("dayEd").querySelectorAll("[data-ede]").forEach(b=>b.onclick=()=>{editIdx=+b.dataset.ede;draw();const n=$("eeName");if(n)n.focus();});
+    if($("eeCancel")) $("eeCancel").onclick=()=>{editIdx=-1;draw();};
+    if($("eeSave")) $("eeSave").onclick=()=>{const e=D().exercises[editIdx]; if(!e) return;
+      const nm=$("eeName").value.trim(); if(!nm){toast("Poné un nombre");return;}
+      const m=$("eeReps").value.match(/(\d+)\s*(?:[-–a]\s*(\d+))?/); const a=m?+m[1]:e.rmin, z=m&&m[2]?+m[2]:a;
+      if(!e.key) e.key=exKey(e.name); // mantiene el historial aunque cambie el nombre
+      e.name=nm.slice(0,60); e.sets=+$("eeSets").value||3; e.rmin=Math.min(a,z); e.rmax=Math.max(a,z);
+      editIdx=-1; persistWorkout(); render(); draw(); toast("Ejercicio actualizado");};
+    $("dayEd").querySelectorAll("[data-rme]").forEach(b=>b.onclick=()=>{D().exercises.splice(+b.dataset.rme,1);persistWorkout();render();draw();});
+    $("dayEd").querySelectorAll("[data-mv]").forEach(b=>b.onclick=()=>{editIdx=-1;const [i,dir]=b.dataset.mv.split(":").map(Number);const j=i+dir;[D().exercises[i],D().exercises[j]]=[D().exercises[j],D().exercises[i]];persistWorkout();render();draw();});
+    $("deDel").onclick=()=>{const dd=D();const i=workout.days.indexOf(dd);workout.days.splice(i,1);persistWorkout();closeSheet();render();
+      toast(`Eliminaste “${dd.name}”`,"Deshacer",()=>{workout.days.splice(i,0,dd);persistWorkout();render();});};
   };
   draw();
 }
@@ -1969,7 +2202,7 @@ function openRecipe(id){
   bindMealPicker();
   if($("rEat")) $("rEat").onclick=()=>{eatRecipe(r,addMeal,Math.max(0.25,+$("rPor").value||1));closeSheet();};
   $("rEdit").onclick=()=>openRecipeForm(r);
-  $("rDel").onclick=()=>{const i=recipes.indexOf(r);recipes.splice(i,1);persistRecipes();closeSheet();render();
+  $("rDel").onclick=()=>{const i=recipes.findIndex(z=>z.id===r.id);if(i<0)return;recipes.splice(i,1);persistRecipes();closeSheet();render();
     toast(`Eliminaste “${r.name}”`,"Deshacer",()=>{recipes.splice(i,0,r);persistRecipes();render();});};
 }
 function openRecipeForm(r){
@@ -2004,7 +2237,7 @@ Respondé SOLO JSON: {"kcal":number,"protein":number,"carbs":number,"fat":number
   $("fSave").onclick=()=>{
     const name=$("fName").value.trim(); if(!name){$("fErr").hidden=false;$("fErr").textContent="Ponele un nombre.";return;}
     const nr=normRecipe({name,portions:$("fPor").value,minutes:$("fMin").value,ingredients:$("fIng").value,steps:$("fSteps").value,kcal:$("fK").value,p:$("fP").value,c:$("fC").value,f:$("fF").value},r?r.source:"mia");
-    if(r){nr.id=r.id;recipes[recipes.indexOf(r)]=nr;} else recipes.unshift(nr);
+    if(r){nr.id=r.id;const ix=recipes.findIndex(z=>z.id===r.id);if(ix>=0)recipes[ix]=nr;else recipes.unshift(nr);} else recipes.unshift(nr);
     persistRecipes(); closeSheet(); render(); toast("Receta guardada");
   };
 }
@@ -2129,6 +2362,7 @@ function openSettings(){
       <label class="field"><span>Grasa g</span><input class="input num" id="gF" type="number" value="${r0(p.fat)}"></label>
     </div>
     <label class="field" style="margin-top:4px"><span>Meta de pasos por día (0 = no usar)</span><input class="input num" id="sSteps" type="text" inputmode="numeric" value="${stepsGoal()}"></label>
+    <label class="checkline" style="margin-top:4px"><input type="checkbox" id="sClose" ${profile.closeOn!==false?"checked":""}> Mostrar "Cierre del día" en Hoy</label>
     <button class="btn" id="sSave">Guardar</button>
     ${mode==="fb"&&fbUser?`<div class="section-label" style="margin-top:22px">Tu cuenta</div><p class="muted" style="margin:0 0 10px">Entraste como <b>${esc(fbUser.email||"")}</b>. Todo se guarda en tu cuenta.</p><button class="btn ghost" id="logoutBtn">Cerrar sesión</button>`:""}
     ${STANDALONE&&fbAvailable()&&mode!=="fb"?`<div class="section-label" style="margin-top:22px">Tu cuenta</div><p class="muted" style="margin:0 0 10px">Estás usando la página sin cuenta: lo que cargás queda solo en este dispositivo.</p><button class="btn" id="loginFromSettings">Entrar con Google</button>`:""}
@@ -2162,6 +2396,7 @@ function openSettings(){
     const r=read(); const k=+$("gK").value;
     if(!(k>=800)){toast("Revisá el tope de calorías");return;}
     const sg=Math.max(0,Math.round(+String($("sSteps").value).replace(/[.,\s]/g,"")||0));
+    profile.closeOn=$("sClose").checked;
     profile={...profile,...r,configured:true,stepsGoal:sg,kcal:k,protein:+$("gP").value||0,carbs:+$("gC").value||0,fat:+$("gF").value||0};
     persistProfile(); closeSheet(); render(); toast("Guardado");
   };
@@ -2218,6 +2453,7 @@ function deleteDocKey(key){
   chains[key]=(chains[key]||Promise.resolve()).then(()=>storeDel(key)).catch(()=>setSync("No se pudo borrar todo. Revisá tu conexión.",true));
 }
 function snapshotState(){return clone({profile,T,favs,recipes,routine,workout,days,weeks,trains,fin,finMonths});}
+
 function restoreState(o){profile=o.profile;T=o.T;favs=o.favs;recipes=o.recipes;routine=o.routine;workout=o.workout;days=o.days;weeks=o.weeks;trains=o.trains;fin=o.fin;finMonths=o.finMonths;persistAll();render();}
 function resetData(all){
   const prev=snapshotState();
@@ -2252,7 +2488,7 @@ if($("loginBtn")){
   $("loginLogo").innerHTML=document.querySelector(".logo").innerHTML.replace('width="42" height="42"','width="72" height="72"');
 }
 $("dPrev").onclick=()=>{if(view==="semana")weekCur=addDays(weekCur,-7);else current=addDays(current,-1);render();};
-$("dNext").onclick=()=>{const t=todayStr();if(view==="semana"){if(weekCur<mondayOf(t))weekCur=addDays(weekCur,7);}else if(current<t)current=addDays(current,1);render();};
+$("dNext").onclick=()=>{const t=todayStr();if(view==="semana"){if(weekCur<mondayOf(t))weekCur=addDays(weekCur,7);}else if(current<(view==="hoy"?addDays(t,90):t))current=addDays(current,1);render();};
 $("dLabel").onclick=()=>{current=todayStr();weekCur=mondayOf(current);render();};
 $("btnSettings").onclick=openSettings;
 $("newDaily").onsubmit=e=>{e.preventDefault();addDaily($("newDailyName").value);$("newDailyName").value="";};
@@ -2275,13 +2511,24 @@ $("newWeekly").onsubmit=e=>{e.preventDefault();addWeekly($("newWeeklyName").valu
 document.querySelectorAll(".tabbar button").forEach(b=>b.onclick=()=>setView(b.dataset.view));
 document.addEventListener("click",e=>{
   if(e.target.closest("#sheet")) return;
+  if(e.target.closest("[data-chnew]")){openChalCreate();return;}
+  if(e.target.closest("[data-chjoin]")){openChalJoin();return;}
+  const chc=e.target.closest("[data-chcopy]"); if(chc){const code=chc.dataset.chcopy;const txt=`¡Sumate a mi desafío en Mi día! Entrá a https://spamsape.github.io/RutinaFran/ con tu Google → Progreso → "Unirme con código" → ${code}`;
+    navigator.clipboard.writeText(txt).then(()=>toast("Invitación copiada: pegala en WhatsApp"),()=>toast("Código: "+code));return;}
+  const chl=e.target.closest("[data-chleave]"); if(chl){const code=chl.dataset.chleave;if(!chl.dataset.armed){chl.dataset.armed="1";chl.textContent="¿Seguro?";return;}
+    try{firebase.database().ref("challenges/"+code+"/members/"+fbUser.uid).remove();}catch(e){}
+    myChal=myChal.filter(c=>c!==code); persistChal(); subscribeChallenges(); render(); toast("Saliste del desafío"); return;}
+  if(e.target.closest("[data-closeedit]")){closeOpen=true;renderClose();return;}
+  if(e.target.closest("[data-closex]")){closeOpen=false;renderClose();return;}
+  if(e.target.closest("[data-closehide]")){profile.closeOn=false;persistProfile();renderClose();toast("Ocultaste el cierre del día","Deshacer",()=>{profile.closeOn=true;persistProfile();renderClose();});return;}
+  if(e.target.closest("[data-gotrain]")){ sessClosed.delete(current); setView("entreno"); return; }
   const g=e.target.closest("[data-goto]"); if(g){if(g.dataset.goto==="semana")weekCur=mondayOf(current);setView(g.dataset.goto);return;}
   const q=e.target.closest("[data-quickadd]"); if(q){openAdd(current===todayStr()?guessMeal():"almuerzo");return;}
   const a=e.target.closest("[data-add]"); if(a){openAdd(a.dataset.add);return;}
   const d=e.target.closest("[data-del]"); if(d){deleteEntry(d.dataset.del);return;}
   const fv=e.target.closest("[data-fav]"); if(fv){toggleFavEntry(fv.dataset.fav);return;}
   const w=e.target.closest("[data-water]"); if(w){const day=getDay(current);const n=+w.dataset.water;day.water=day.water===n?n-1:n;persistDay(current);renderWater();return;}
-  const tg=e.target.closest("[data-toggle]"); if(tg){toggleDaily(tg.dataset.toggle);return;}
+  const tg=e.target.closest("[data-toggle]"); if(tg){if(current>todayStr()){toast("Las tareas se tachan el mismo día");return;}toggleDaily(tg.dataset.toggle);return;}
   const rd=e.target.closest("[data-rmdaily]"); if(rd){removeTask("d",rd.dataset.rmdaily);return;}
   const rw=e.target.closest("[data-rmweekly]"); if(rw){removeTask("w",rw.dataset.rmweekly);return;}
   const wp=e.target.closest("[data-wplus]"); if(wp){bumpWeekly(wp.dataset.wplus,1);return;}
@@ -2294,9 +2541,14 @@ document.addEventListener("click",e=>{
   const sd2=e.target.closest("[data-startday]"); if(sd2){startSession(sd2.dataset.startday);return;}
   const ed=e.target.closest("[data-editday]"); if(ed){openDayEditor(ed.dataset.editday);return;}
   const nd2=e.target.closest("#newDailyDays [data-nd]"); if(nd2){if(nd2.dataset.nd==="date"){newDateMode=!newDateMode;render();return;} newDateMode=false; if(nd2.dataset.nd==="all")newDays=[];else{const n=+nd2.dataset.nd;newDays=newDays.includes(n)?newDays.filter(v=>v!==n):[...newDays,n];if(newDays.length===7)newDays=[];}render();return;}
+  const rmd=e.target.closest("[data-remind]"); if(rmd){openReminder(rmd.dataset.remind);return;}
   const edd=e.target.closest("[data-editdaily]"); if(edd){openTaskEditor(edd.dataset.editdaily);return;}
   const fm=e.target.closest("[data-finm]"); if(fm){const nm=monthAdd(finMonth,+fm.dataset.finm);if(nm<=todayStr().slice(0,7)){finMonth=nm;render();}return;}
   const fdl=e.target.closest("[data-fdel]"); if(fdl){const f=getFinMonth(finMonth);const i=f.items.findIndex(x=>x.id===fdl.dataset.fdel);if(i>=0){const [it]=f.items.splice(i,1);const m=finMonth;persistFinMonth(m);render();toast(`Borraste ${money(it.amount)}`,"Deshacer",()=>{getFinMonth(m).items.splice(i,0,it);persistFinMonth(m);render();});}return;}
+  const idl=e.target.closest("[data-idel]"); if(idl){const f=getFinMonth(finMonth);const i=f.inc.findIndex(x=>x.id===idl.dataset.idel);if(i>=0){const [it]=f.inc.splice(i,1);const m=finMonth;persistFinMonth(m);render();toast(`Borraste un ingreso de ${money(it.amount)}`,"Deshacer",()=>{getFinMonth(m).inc.splice(i,0,it);persistFinMonth(m);render();});}return;}
+  const ifp=e.target.closest("[data-ifpause]"); if(ifp){const x=fin.incFix.find(z=>z.id===ifp.dataset.ifpause);if(x){x.paused=!x.paused;persistFin();render();}return;}
+  const ifr=e.target.closest("[data-ifrm]"); if(ifr){const i=fin.incFix.findIndex(z=>z.id===ifr.dataset.ifrm);if(i>=0){const [x]=fin.incFix.splice(i,1);persistFin();render();toast(`Eliminaste ${x.name}`,"Deshacer",()=>{fin.incFix.splice(i,0,x);persistFin();render();});}return;}
+  const grm=e.target.closest("[data-grm]"); if(grm){const i=fin.goals.findIndex(z=>z.id===grm.dataset.grm);if(i>=0){const [x]=fin.goals.splice(i,1);persistFin();render();toast(`Eliminaste la meta ${x.name}`,"Deshacer",()=>{fin.goals.splice(i,0,x);persistFin();render();});}return;}
   const sp=e.target.closest("[data-subpause]"); if(sp){const x=fin.subs.find(z=>z.id===sp.dataset.subpause);if(x){x.paused=!x.paused;persistFin();render();}return;}
   const sr=e.target.closest("[data-subrm]"); if(sr){const i=fin.subs.findIndex(z=>z.id===sr.dataset.subrm);if(i>=0){const [x]=fin.subs.splice(i,1);persistFin();render();toast(`Eliminaste ${x.name}`,"Deshacer",()=>{fin.subs.splice(i,0,x);persistFin();render();});}return;}
   const sm=e.target.closest("[data-summode]"); if(sm){sumMode=sm.dataset.summode;sumOff=0;renderResumen();return;}
@@ -2304,6 +2556,11 @@ document.addEventListener("click",e=>{
   const gs=e.target.closest("[data-gosum]"); if(gs){sumMode=gs.dataset.gosum;sumOff=-1;setView("progreso");return;}
   const rs2=e.target.closest("[data-rest]"); if(rs2){setRestSec(+rs2.dataset.rest);render();return;}
   if(e.target.closest("[data-reststart]")){startRest();return;}
+  const sc=e.target.closest("[data-sessclose]"); if(sc){ const s0=trains[current]; if(!s0) return; stopRest();
+    if(!sessionStats(s0).sets){ delete trains[current]; persistTrain(current); trainPick=null; render(); toast("Cerraste el entrenamiento (no había nada cargado)"); }
+    else { sessClosed.add(current); render(); toast("Entrenamiento guardado ✅"); } return; }
+  if(e.target.closest("[data-sessopen]")){ sessClosed.delete(current); render(); return; }
+  const exm=e.target.closest("[data-exmv]"); if(exm){ const s0=trains[current]; const [i,dir]=exm.dataset.exmv.split(":").map(Number); const j=i+dir; if(s0&&s0.ex[j]){[s0.ex[i],s0.ex[j]]=[s0.ex[j],s0.ex[i]]; persistTrain(current); render();} return; }
   if(e.target.closest("[data-sessedit]")){sessEdit={date:current,backup:clone(trains[current])};render();return;}
   if(e.target.closest("[data-sessok]")){sessEdit=null;render();toast("Cambios guardados");return;}
   if(e.target.closest("[data-sesscancel]")){if(sessEdit){trains[sessEdit.date]=sessEdit.backup;persistTrain(sessEdit.date);}sessEdit=null;render();toast("Dejaste todo como estaba");return;}
